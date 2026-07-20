@@ -45,6 +45,39 @@ Run with a custom task prompt:
 python3 main.py "Research Python async patterns and draft a reference guide."
 ```
 
+### Windows (PowerShell)
+
+```powershell
+cd C:\Users\Startklaar\Projects\antigravity-workspace
+
+# Create and activate virtual environment (first time only)
+py -m venv .venv
+.\.venv\Scripts\Activate.ps1
+
+pip install -r requirements.txt
+
+# API key MUST be quoted in PowerShell (keys often start with "AQ.")
+$env:GEMINI_API_KEY = "your-api-key-here"
+
+py main.py "Your task prompt here"
+```
+
+Or persist the key in a `.env` file (recommended):
+
+```powershell
+Copy-Item .env.example .env
+# Edit .env and paste your key, then:
+py main.py
+```
+
+### Common errors
+
+| Error | Fix |
+|-------|-----|
+| `get() got an unexpected keyword argument 'interaction_id'` | Use `client.interactions.get(id=interaction_id)` — the parameter is **`id`**, not `interaction_id`. |
+| `GEMINI_API_KEY environment variable is not set` | Set with quotes: `$env:GEMINI_API_KEY = "AQ...."` |
+| `Activate.ps1` not found | Run `py -m venv .venv` first, from the project directory. |
+
 ### Pipeline Steps
 
 | Step | Module | Description |

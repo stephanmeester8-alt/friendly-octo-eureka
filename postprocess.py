@@ -6,7 +6,7 @@ import sys
 
 from google import genai
 
-from agents import is_success_status, normalize_status, poll_interaction
+from agents import is_success_status, is_terminal_status, normalize_status, poll_interaction
 from client import get_client
 from config import (
     POSTPROCESS_SYSTEM_INSTRUCTION,
@@ -37,6 +37,10 @@ def route_and_reformat(
     print_step(2, f"Gemini 3.5 Flash reformatting ({ROUTING_MODEL})...")
     print_interaction_id("Chaining from", previous_interaction_id)
 
+    print_step(2, f"Gemini 3.5 Flash reformatting ({ROUTING_MODEL})...")
+    print_interaction_id("Chaining from", previous_interaction_id)
+    print_info("Submitting routing interaction (background=True)...")
+
     interaction = client.interactions.create(
         model=ROUTING_MODEL,
         input=POSTPROCESS_USER_PROMPT,
@@ -44,20 +48,21 @@ def route_and_reformat(
         system_instruction=POSTPROCESS_SYSTEM_INSTRUCTION,
         response_format=_build_response_format(),
         generation_config={"temperature": 0.1},
+        background=True,
         store=True,
     )
 
     interaction_id = interaction.id
-    status = normalize_status(interaction.status)
+    print_interaction_id("Routing interaction", interaction_id)
 
-    if not is_success_status(interaction.status) and status == "in_progress":
-        print_interaction_id("Waiting for routing", interaction_id)
+    if not is_terminal_status(interaction.status):
         interaction = poll_interaction(
             client,
             interaction_id,
             label="Gemini-Router",
         )
-        status = normalize_status(interaction.status)
+
+    status = normalize_status(interaction.status)
 
     if not is_success_status(interaction.status):
         print(

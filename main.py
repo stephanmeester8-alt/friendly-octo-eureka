@@ -122,6 +122,7 @@ def run_pipeline(
 
     postprocess_payload, routing_interaction_id = route_and_reformat(
         agent_result.interaction_id,
+        agent_output_text=agent_result.output_text,
         client=client,
     )
 

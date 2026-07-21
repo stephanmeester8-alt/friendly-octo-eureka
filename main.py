@@ -114,6 +114,7 @@ def run_pipeline(
     print_banner()
     print_task(prompt)
     print_run_paths(paths.project_slug, paths.run_id, paths.run_dir_str)
+    paths.run_dir.mkdir(parents=True, exist_ok=True)
 
     client = get_client()
 

@@ -45,8 +45,31 @@ POSTPROCESS_USER_PROMPT: str = (
     "1. A clean Markdown summary of what was accomplished.\n"
     "2. A list of proposed local files to persist (filename, content, description).\n"
     "3. Metadata including the source interaction context.\n"
+    "Keep each proposed file concise (max ~2500 characters per file). "
     "Return only valid JSON matching the response schema."
 )
+
+POSTPROCESS_FALLBACK_USER_PROMPT: str = (
+    "Based on the completed Antigravity agent work in the prior interaction, "
+    "return ONLY valid JSON with this exact shape (no markdown fences):\n"
+    "{\n"
+    '  "summary_markdown": "Markdown summary",\n'
+    '  "proposed_files": [\n'
+    "    {\n"
+    '      "filename": "report.md",\n'
+    '      "content": "file body",\n'
+    '      "description": "what this file is"\n'
+    "    }\n"
+    "  ],\n"
+    '  "metadata": {"company_name": "...", "sector": "..."}\n'
+    "}\n"
+    "Limit to at most 3 proposed files and keep each file body under 2500 characters."
+)
+
+ROUTING_GENERATION_CONFIG: dict = {
+    "temperature": 0.1,
+    "max_output_tokens": 8192,
+}
 
 # ---------------------------------------------------------------------------
 # Environment

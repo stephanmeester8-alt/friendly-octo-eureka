@@ -8,7 +8,8 @@ from datetime import datetime, timezone
 from pathlib import Path
 from typing import Any
 
-from console import metadata_value, truncate_text
+from console import truncate_text
+from metadata_resolver import resolve_company_name, resolve_sector
 from schemas import AgentRunResult, PostProcessPayload, WriteResult
 
 
@@ -76,8 +77,8 @@ def build_index_markdown(
 ) -> str:
     """Build a prospect-friendly INDEX.md for the run folder."""
     metadata = postprocess.metadata
-    company = metadata_value(metadata, "company_name", "client_name", "organization")
-    sector = metadata_value(metadata, "sector", "industry")
+    company = resolve_company_name(postprocess)
+    sector = resolve_sector(postprocess)
     summary = postprocess.summary_markdown.strip()
 
     lines = [
@@ -118,7 +119,8 @@ def build_index_markdown(
             f"- **Run ID:** `{run_id}`",
             f"- **Created (UTC):** {created_at}",
             f"- **Approved:** {'Yes' if approved else 'No'}",
-            f"- **Sector:** {sector}",
+            f"- **Bedrijf:** {company}",
+        f"- **Sector:** {sector}",
             "",
             "Zie `run_manifest.json` voor volledige technische traceerbaarheid.",
             "",

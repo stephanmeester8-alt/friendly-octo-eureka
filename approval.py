@@ -5,6 +5,7 @@ from __future__ import annotations
 import sys
 
 from console import format_bytes, is_compact, metadata_value, truncate_text
+from metadata_resolver import resolve_company_name, resolve_sector
 from schemas import PostProcessPayload, ProposedFile
 
 
@@ -65,8 +66,8 @@ def display_approval_summary_compact(
 ) -> None:
     """Render a compact, sales-friendly HITL review table."""
     metadata = payload.metadata
-    company = metadata_value(metadata, "company_name", "client_name", "organization")
-    sector = metadata_value(metadata, "sector", "industry")
+    company = resolve_company_name(payload)
+    sector = resolve_sector(payload)
     total_bytes = sum(len(item.content.encode("utf-8")) for item in payload.proposed_files)
 
     print("\n" + "┌─ HITL REVIEW " + "─" * 57)

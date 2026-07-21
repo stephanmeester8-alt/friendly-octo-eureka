@@ -17,6 +17,7 @@ from config import (
     ROUTING_MODEL,
 )
 from console import print_info, print_interaction_id, print_step
+from metadata_resolver import enrich_payload_metadata
 from schemas import PostProcessPayload
 
 
@@ -41,7 +42,13 @@ def _build_response_format() -> dict:
                         "required": ["filename", "content", "description"],
                     },
                 },
-                "metadata": {"type": "object"},
+                "metadata": {
+                    "type": "object",
+                    "properties": {
+                        "company_name": {"type": "string"},
+                        "sector": {"type": "string"},
+                    },
+                },
             },
             "required": ["summary_markdown", "proposed_files"],
         },
@@ -123,17 +130,19 @@ def route_and_reformat(
 
     if raw_output:
         try:
-            payload = _parse_payload(raw_output)
+            payload = enrich_payload_metadata(_parse_payload(raw_output))
             if is_success_status(interaction.status):
                 print_step(2, "Routing completed. Parsing structured JSON output...")
                 print_info(f"Summary length: {len(payload.summary_markdown)} chars")
                 print_info(f"Proposed files: {len(payload.proposed_files)}")
+                print_info(f"Company: {payload.metadata.get('company_name', '—')}")
                 return payload, interaction_id
             print_info(
                 f"Routing status was {status}, but JSON output parsed — continuing."
             )
             print_info(f"Summary length: {len(payload.summary_markdown)} chars")
             print_info(f"Proposed files: {len(payload.proposed_files)}")
+            print_info(f"Company: {payload.metadata.get('company_name', '—')}")
             return payload, interaction_id
         except Exception:
             if is_success_status(interaction.status):
@@ -163,7 +172,7 @@ def route_and_reformat(
 
     if fallback_output:
         try:
-            payload = _parse_payload(fallback_output)
+            payload = enrich_payload_metadata(_parse_payload(fallback_output))
             print_step(2, "Fallback routing completed. Parsing JSON output...")
             print_info(f"Summary length: {len(payload.summary_markdown)} chars")
             print_info(f"Proposed files: {len(payload.proposed_files)}")

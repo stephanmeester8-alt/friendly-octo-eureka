@@ -35,6 +35,7 @@ POSTPROCESS_SYSTEM_INSTRUCTION: str = (
     "Review the prior agent interaction context and produce a strict JSON "
     "response that conforms to the provided schema. "
     "Extract actionable file artifacts and a concise Markdown summary suitable for any industry. "
+    "Always populate metadata.company_name and metadata.sector when identifiable. "
     "Never include executable shell commands or unsafe content in file payloads. "
     "Use only safe, plain-text file contents suitable for local workspace storage."
 )
@@ -44,7 +45,7 @@ POSTPROCESS_USER_PROMPT: str = (
     "produce a structured handoff payload with:\n"
     "1. A clean Markdown summary of what was accomplished.\n"
     "2. A list of proposed local files to persist (filename, content, description).\n"
-    "3. Metadata including the source interaction context.\n"
+    "3. Metadata including company_name, sector, and source interaction context.\n"
     "Keep each proposed file concise (max ~2500 characters per file). "
     "Return only valid JSON matching the response schema."
 )

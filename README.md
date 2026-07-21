@@ -171,3 +171,10 @@ Approved artifacts land in a per-project folder, for example:
 - Zero autonomous file mutations — all writes require explicit `Y` approval
 - Path traversal protection in `writer.py` (basename-only, resolved-path checks)
 - Post-process layer enforces structured JSON output with schema validation
+
+## Sales materials (NL)
+
+Cross-sector outreach templates and Dutch pricing / offer terms:
+
+- [`sales/outreach-templates-nl.md`](sales/outreach-templates-nl.md) — LinkedIn & e-mail sequences
+- [`sales/prijzen-offerte-voorwaarden-nl.md`](sales/prijzen-offerte-voorwaarden-nl.md) — pricing, offer template, terms

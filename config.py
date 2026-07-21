@@ -56,9 +56,10 @@ API_KEY_ENV_VAR: str = "GEMINI_API_KEY"
 
 def load_config() -> str:
     """Load environment variables and return a validated API key."""
-    load_dotenv(WORKSPACE_ROOT / ".env")
+    # Prefer project .env over injected/process env to avoid malformed secret injection.
+    load_dotenv(WORKSPACE_ROOT / ".env", override=True)
 
-    api_key = os.environ.get(API_KEY_ENV_VAR, "").strip()
+    api_key = os.environ.get(API_KEY_ENV_VAR, "").strip().strip('"').strip("'")
     if not api_key:
         print(
             f"[ERROR] Missing API key. Set the {API_KEY_ENV_VAR} environment variable "

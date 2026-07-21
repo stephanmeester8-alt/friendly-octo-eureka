@@ -1,11 +1,13 @@
 # Enterprise AI Workspace Pipeline
 
-A local Python application that orchestrates Google Gemini **Interactions API** workflows with enterprise safety controls:
+A local Python application that orchestrates Google Gemini **Interactions API** workflows for **companies in any sector** — with enterprise safety controls:
 
 - **Antigravity agent** (`antigravity-preview-05-2026`) for remote sandbox execution
 - **Dynamic model routing** via `gemini-3.5-flash` with server-side context chaining
 - **Human-in-the-Loop (HITL)** approval gate before any local disk writes
-- **Safe writer** restricted to the `./output/` directory
+- **Safe writer** restricted to the `./output/<project>/` directory
+
+Use it for compliance reviews, strategic planning, proposal drafting, process optimization, due diligence, or any knowledge-work task — finance, healthcare, legal, manufacturing, retail, public sector, and beyond.
 
 ## Requirements
 
@@ -48,14 +50,15 @@ python3 main.py "Research Python async patterns and draft a reference guide."
 Project-scoped output (auto-derived subfolder under `./output/`):
 
 ```bash
-python3 main.py --project nota_infra_emvi_2026 "EMVI tender analysis for urban infrastructure."
-python3 main.py --open-output --project demo_run "Draft a client proposal."
+python3 main.py --project acme_compliance_review_2026 "Compliance gap analysis for ISO 27001 readiness."
+python3 main.py --open-output --project nordvik_proposal_q3 "Draft a B2B services proposal."
+python3 main.py --project helix_patient_intake "Summarize intake workflow improvements for a clinic."
 ```
 
-Enterprise sales demo (built-in GWW/EMVI master prompt):
+Cross-sector enterprise sales demo (built-in master prompt):
 
 ```bash
-python3 main.py --demo-infra --project nota_infra_emvi_2026 --open-output
+python3 main.py --demo --project enterprise_demo_2026 --open-output
 ```
 
 ### Windows (PowerShell)
@@ -77,7 +80,7 @@ $env:GEMINI_API_KEY = "your-api-key-here"
 python main.py "Your task prompt here"
 
 # Or use the helper script (always targets .venv):
-.\run.ps1 --demo-infra --project nota_infra_emvi_2026 --open-output
+.\run.ps1 --demo --project enterprise_demo_2026 --open-output
 ```
 
 Or persist the key in a `.env` file (recommended):
@@ -120,11 +123,22 @@ During Antigravity polling, the terminal shows live elapsed time:
 Approved artifacts land in a per-project folder, for example:
 
 ```text
-./output/nota_infra_emvi_2026/
+./output/acme_compliance_review_2026/
 ├── summary.md
-├── STRATEGY.md
-└── claude_desktop_config.json
+├── risk_assessment.md
+└── implementation_plan.md
 ```
+
+### Sector examples
+
+| Sector | Example prompt |
+|--------|----------------|
+| Finance | `"Analyse AML/KYC gaps and draft a remediation roadmap."` |
+| Healthcare | `"Review patient intake workflow and propose efficiency improvements."` |
+| Legal | `"Summarize contract risks in a vendor MSA and suggest redlines."` |
+| Manufacturing | `"Evaluate supply-chain disruption scenarios and mitigation steps."` |
+| Retail | `"Draft a loyalty-program ROI model and rollout plan."` |
+| Public sector | `"Assess procurement compliance and document control gaps."` |
 
 ## Project Structure
 

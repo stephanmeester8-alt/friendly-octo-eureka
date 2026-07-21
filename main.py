@@ -22,16 +22,12 @@ DEFAULT_PROMPT = (
     "to save locally."
 )
 
-DEMO_INFRA_PROMPT = (
-    "Voer een integrale tender- en risico-analyse uit voor een grootschalig GWW-project "
-    "(aanleg riolering, grondverzet en herbestrating in stedelijk gebied). "
-    "Onderdeel A: Analyseer alle RAW-bestekseisen, boeteclausules en stikstofnormen. "
-    "Onderdeel B: Schrijf een winnend EMVI-plan van aanpak gericht op CO2-reductie "
-    "door emissieloos materieel. "
-    "Onderdeel C: Stel een V&G-plan op voor werkzaamheden in vervuilde grond "
-    "(PFAS/bodemsanering). "
-    "Onderdeel D: Bereken de TCO en terugverdientijd van de overstap naar een volledige "
-    "elektrische vloot inclusief MIA/Vamil-subsidies."
+DEMO_ENTERPRISE_PROMPT = (
+    "Voer een integrale bedrijfsanalyse uit voor een middelgroot bedrijf in een willekeurige sector. "
+    "Onderdeel A: Identificeer operationele risico's, compliance-vereisten en knelpunten in kernprocessen. "
+    "Onderdeel B: Stel een concreet verbeterplan op met prioriteiten, KPI's en verwachte bedrijfsimpact. "
+    "Onderdeel C: Schrijf een implementatiestrategie inclusief change management en stakeholdercommunicatie. "
+    "Onderdeel D: Geef een ROI-inschatting en aanbevelingen voor verantwoorde AI-adoptie met menselijke controle."
 )
 
 
@@ -52,14 +48,22 @@ def build_parser() -> argparse.ArgumentParser:
         "--project",
         metavar="SLUG",
         help=(
-            "Project subdirectory under ./output/ (e.g. nota_infra_emvi_2026). "
+            "Project subdirectory under ./output/ (e.g. acme_compliance_review_2026). "
             "Auto-derived from the prompt when omitted."
+        ),
+    )
+    parser.add_argument(
+        "--demo",
+        action="store_true",
+        help=(
+            "Use the built-in cross-sector enterprise demo prompt for sales presentations."
         ),
     )
     parser.add_argument(
         "--demo-infra",
         action="store_true",
-        help="Use the built-in GWW/EMVI enterprise demo prompt for sales presentations.",
+        dest="demo",
+        help=argparse.SUPPRESS,
     )
     parser.add_argument(
         "--write-summary",
@@ -162,7 +166,7 @@ def run_pipeline(
 def main() -> None:
     parser = build_parser()
     args = parser.parse_args()
-    prompt = DEMO_INFRA_PROMPT if args.demo_infra else args.prompt
+    prompt = DEMO_ENTERPRISE_PROMPT if args.demo else args.prompt
 
     try:
         run_pipeline(

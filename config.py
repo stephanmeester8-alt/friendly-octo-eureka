@@ -31,10 +31,10 @@ OUTPUT_DIR: Path = WORKSPACE_ROOT / "output"
 # Interaction-scoped instructions (must be re-supplied on every interaction)
 # ---------------------------------------------------------------------------
 POSTPROCESS_SYSTEM_INSTRUCTION: str = (
-    "You are an enterprise AI post-processing layer. "
+    "You are an enterprise AI post-processing layer for cross-sector business use. "
     "Review the prior agent interaction context and produce a strict JSON "
     "response that conforms to the provided schema. "
-    "Extract actionable file artifacts and a concise Markdown summary. "
+    "Extract actionable file artifacts and a concise Markdown summary suitable for any industry. "
     "Never include executable shell commands or unsafe content in file payloads. "
     "Use only safe, plain-text file contents suitable for local workspace storage."
 )

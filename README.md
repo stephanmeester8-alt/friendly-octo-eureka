@@ -45,6 +45,19 @@ Run with a custom task prompt:
 python3 main.py "Research Python async patterns and draft a reference guide."
 ```
 
+Project-scoped output (auto-derived subfolder under `./output/`):
+
+```bash
+python3 main.py --project nota_infra_emvi_2026 "EMVI tender analysis for urban infrastructure."
+python3 main.py --open-output --project demo_run "Draft a client proposal."
+```
+
+Enterprise sales demo (built-in GWW/EMVI master prompt):
+
+```bash
+python3 main.py --demo-infra --project nota_infra_emvi_2026 --open-output
+```
+
 ### Windows (PowerShell)
 
 ```powershell
@@ -64,7 +77,7 @@ $env:GEMINI_API_KEY = "your-api-key-here"
 python main.py "Your task prompt here"
 
 # Or use the helper script (always targets .venv):
-.\run.ps1 "Your task prompt here"
+.\run.ps1 --demo-infra --project nota_infra_emvi_2026 --open-output
 ```
 
 Or persist the key in a `.env` file (recommended):
@@ -89,12 +102,29 @@ python main.py
 
 | Step | Module | Description |
 |------|--------|-------------|
-| 1/4 | `agents.py` | Starts Antigravity in background mode, polls until `completed` |
+| 1/4 | `agents.py` | Starts Antigravity in background mode, polls with live elapsed-time telemetry |
 | 2/4 | `postprocess.py` | Routes to Gemini 3.5 Flash via `previous_interaction_id` for JSON + Markdown |
-| 3/4 | `approval.py` | Displays summary and proposed files; prompts `[Y/N]` |
-| 4/4 | `writer.py` | Writes approved files to `./output/` only |
+| 3/4 | `approval.py` | Displays summary, target project folder, and proposed files; prompts `[Y/N]` |
+| 4/4 | `writer.py` | Writes approved files to `./output/<project>/` with Markdown sanitization |
 
 **No files are ever written without explicit CLI approval.**
+
+### Demo telemetry
+
+During Antigravity polling, the terminal shows live elapsed time:
+
+```text
+[Antigravity] Poll 4/360 — status: in_progress (15s elapsed)
+```
+
+Approved artifacts land in a per-project folder, for example:
+
+```text
+./output/nota_infra_emvi_2026/
+├── summary.md
+├── STRATEGY.md
+└── claude_desktop_config.json
+```
 
 ## Project Structure
 
@@ -105,10 +135,14 @@ python main.py
 ├── agents.py       # Antigravity agent execution + status polling
 ├── postprocess.py  # Dynamic model routing (gemini-3.5-flash)
 ├── approval.py     # HITL security approval gate
-├── writer.py       # Safe local file writer (./output/ only)
+├── project_paths.py # Project slug + ./output/<project>/ routing
+├── sanitize.py     # Markdown sanitization before disk writes
+├── writer.py       # Safe local file writer (./output/<project>/ only)
 ├── main.py         # CLI entry point
+├── run.ps1         # Windows helper (forces .venv python)
 ├── requirements.txt
 └── output/         # Created at runtime after approval
+    └── <project>/  # One subfolder per run / --project slug
 ```
 
 ## Architecture Notes

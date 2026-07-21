@@ -55,6 +55,12 @@ def display_approval_summary(payload: PostProcessPayload) -> None:
     print("\n" + "=" * 72)
 
 
+def display_output_target(project_slug: str, output_dir: str) -> None:
+    """Show where approved files will be written."""
+    print(f"\n[INFO] Approved files will be written to: .\\output\\{project_slug}\\")
+    print(f"       Full path: {output_dir}")
+
+
 def _display_proposed_file(index: int, proposed: ProposedFile) -> None:
     print(f"  [{index}] {proposed.filename}")
     print(f"      Description: {proposed.description}")
@@ -63,13 +69,19 @@ def _display_proposed_file(index: int, proposed: ProposedFile) -> None:
     print(f"      {_truncate(preview, max_len=400)}")
 
 
-def request_approval(payload: PostProcessPayload) -> ApprovalGrant | None:
+def request_approval(
+    payload: PostProcessPayload,
+    *,
+    project_slug: str,
+    output_dir: str,
+) -> ApprovalGrant | None:
     """Display output and prompt for explicit Y/N permission before disk writes.
 
     Returns an :class:`ApprovalGrant` when approved; ``None`` when denied.
     """
     print("[3/4] Awaiting Human-in-the-Loop approval...")
     display_approval_summary(payload)
+    display_output_target(project_slug, output_dir)
 
     if not payload.proposed_files:
         print(

@@ -55,6 +55,18 @@ def is_success_status(status: Any) -> bool:
     return normalize_status(status) in SUCCESS_STATUSES
 
 
+def format_elapsed(seconds: float) -> str:
+    """Format elapsed seconds for live polling telemetry."""
+    total = max(0, int(seconds))
+    hours, remainder = divmod(total, 3600)
+    minutes, secs = divmod(remainder, 60)
+    if hours:
+        return f"{hours}h {minutes}m {secs}s"
+    if minutes:
+        return f"{minutes}m {secs}s"
+    return f"{secs}s"
+
+
 def poll_interaction(
     client: genai.Client,
     interaction_id: str,
@@ -64,20 +76,27 @@ def poll_interaction(
     label: str = "Interaction",
 ) -> Any:
     """Poll an interaction until it reaches a terminal status."""
+    started = time.monotonic()
+
     for attempt in range(1, max_attempts + 1):
         interaction = client.interactions.get(id=interaction_id)
         status = normalize_status(interaction.status)
+        elapsed = format_elapsed(time.monotonic() - started)
 
-        print(f"  [{label}] Poll {attempt}/{max_attempts} — status: {status}")
+        print(
+            f"  [{label}] Poll {attempt}/{max_attempts} — "
+            f"status: {status} ({elapsed} elapsed)"
+        )
 
         if is_terminal_status(interaction.status):
             return interaction
 
         time.sleep(poll_interval)
 
+    elapsed = format_elapsed(time.monotonic() - started)
     raise TimeoutError(
         f"{label} {interaction_id!r} did not reach a terminal status "
-        f"after {max_attempts} polls ({poll_interval}s interval)."
+        f"after {max_attempts} polls ({poll_interval}s interval, {elapsed} elapsed)."
     )
 
 

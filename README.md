@@ -75,6 +75,7 @@ py main.py
 | Error | Fix |
 |-------|-----|
 | `get() got an unexpected keyword argument 'interaction_id'` | Use `client.interactions.get(id=interaction_id)` — the parameter is **`id`**, not `interaction_id`. |
+| `create() got an unexpected keyword argument 'environment'` | Your `google-genai` is too old (legacy `InteractionsResource`). Upgrade inside the venv: `pip install -U "google-genai>=2.12.0"` |
 | `GEMINI_API_KEY environment variable is not set` | Set with quotes: `$env:GEMINI_API_KEY = "AQ...."` |
 | `Activate.ps1` not found | Run `py -m venv .venv` first, from the project directory. |
 

@@ -7,6 +7,22 @@ import sys
 from schemas import PostProcessPayload, ProposedFile
 
 
+class ApprovalGrant:
+    """Opaque token issued only after explicit human approval.
+
+    Instances are not constructible outside this module; writer.py requires a
+    valid grant before persisting any payload to ./output/.
+    """
+
+    __slots__ = ()
+
+    def __repr__(self) -> str:
+        return "ApprovalGrant(granted=True)"
+
+
+_APPROVAL_GRANT = ApprovalGrant()
+
+
 def _truncate(text: str, max_len: int = 1200) -> str:
     if len(text) <= max_len:
         return text
@@ -44,8 +60,11 @@ def _display_proposed_file(index: int, proposed: ProposedFile) -> None:
     print(f"      {_truncate(preview, max_len=400)}")
 
 
-def request_approval(payload: PostProcessPayload) -> bool:
-    """Display output and prompt for explicit Y/N permission before disk writes."""
+def request_approval(payload: PostProcessPayload) -> ApprovalGrant | None:
+    """Display output and prompt for explicit Y/N permission before disk writes.
+
+    Returns an :class:`ApprovalGrant` when approved; ``None`` when denied.
+    """
     print("[3/4] Awaiting Human-in-the-Loop approval...")
     display_approval_summary(payload)
 
@@ -62,13 +81,13 @@ def request_approval(payload: PostProcessPayload) -> bool:
             ).strip().upper()
         except (EOFError, KeyboardInterrupt):
             print("\n[INFO] Approval cancelled by user.", file=sys.stderr)
-            return False
+            return None
 
         if response in {"Y", "YES"}:
             print("[3/4] Approval GRANTED.")
-            return True
+            return _APPROVAL_GRANT
         if response in {"N", "NO"}:
             print("[3/4] Approval DENIED. No files will be written.")
-            return False
+            return None
 
         print("  Invalid input. Please enter Y or N.")

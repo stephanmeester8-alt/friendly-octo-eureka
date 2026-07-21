@@ -2,11 +2,20 @@
 
 from __future__ import annotations
 
-import sys
 from pathlib import Path
 
+from approval import ApprovalGrant
 from config import OUTPUT_DIR
 from schemas import ProposedFile, WriteResult
+
+
+def _require_approval(approval: ApprovalGrant) -> None:
+    """Reject writes unless a valid HITL grant was issued by approval.py."""
+    if not isinstance(approval, ApprovalGrant):
+        raise PermissionError(
+            "HITL approval grant required before writing to ./output/. "
+            "Call request_approval() and pass the returned ApprovalGrant."
+        )
 
 
 def _resolve_safe_path(filename: str) -> Path:
@@ -29,8 +38,12 @@ def _resolve_safe_path(filename: str) -> Path:
 
 def write_approved_files(
     proposed_files: list[ProposedFile],
+    *,
+    approval: ApprovalGrant,
 ) -> list[WriteResult]:
-    """Write approved files to ./output/. Caller must have obtained HITL approval."""
+    """Write approved files to ./output/. Requires a valid HITL ApprovalGrant."""
+    _require_approval(approval)
+
     if not proposed_files:
         print("[4/4] No files to write.")
         return []
@@ -57,8 +70,15 @@ def write_approved_files(
     return results
 
 
-def write_summary_markdown(summary: str, filename: str = "summary.md") -> WriteResult:
+def write_summary_markdown(
+    summary: str,
+    *,
+    approval: ApprovalGrant,
+    filename: str = "summary.md",
+) -> WriteResult:
     """Write the Markdown summary to ./output/ after approval."""
+    _require_approval(approval)
+
     OUTPUT_DIR.mkdir(parents=True, exist_ok=True)
     target = _resolve_safe_path(filename)
     target.write_text(summary, encoding="utf-8")

@@ -69,14 +69,21 @@ def run_pipeline(prompt: str, *, write_summary: bool = True) -> PipelineResult:
     )
 
     # Step 3: Human-in-the-Loop approval gate
-    approved = request_approval(postprocess_payload)
+    approval = request_approval(postprocess_payload)
+    approved = approval is not None
 
     written_files = []
-    if approved:
-        written_files = write_approved_files(postprocess_payload.proposed_files)
+    if approval is not None:
+        written_files = write_approved_files(
+            postprocess_payload.proposed_files,
+            approval=approval,
+        )
         if write_summary and postprocess_payload.summary_markdown:
             written_files.append(
-                write_summary_markdown(postprocess_payload.summary_markdown)
+                write_summary_markdown(
+                    postprocess_payload.summary_markdown,
+                    approval=approval,
+                )
             )
     else:
         print("[4/4] Skipped — no files written (approval denied).")

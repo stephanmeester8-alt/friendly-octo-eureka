@@ -22,6 +22,9 @@ class ApprovalGrant:
 
 _APPROVAL_GRANT = ApprovalGrant()
 
+_APPROVE_RESPONSES = frozenset({"Y", "YES", "J", "JA"})
+_DENY_RESPONSES = frozenset({"N", "NO", "NEE"})
+
 
 def _truncate(text: str, max_len: int = 1200) -> str:
     if len(text) <= max_len:
@@ -77,17 +80,21 @@ def request_approval(payload: PostProcessPayload) -> ApprovalGrant | None:
     while True:
         try:
             response = input(
-                "\nApprove writing proposed files to ./output/? [Y/N]: "
+                "\nApprove writing proposed files to ./output/? [Y/N or J/N]: "
             ).strip().upper()
         except (EOFError, KeyboardInterrupt):
             print("\n[INFO] Approval cancelled by user.", file=sys.stderr)
             return None
 
-        if response in {"Y", "YES"}:
+        if not response:
+            print("  No input received. Type Y (yes) or N (no), then press Enter.")
+            continue
+
+        if response in _APPROVE_RESPONSES:
             print("[3/4] Approval GRANTED.")
             return _APPROVAL_GRANT
-        if response in {"N", "NO"}:
+        if response in _DENY_RESPONSES:
             print("[3/4] Approval DENIED. No files will be written.")
             return None
 
-        print("  Invalid input. Please enter Y or N.")
+        print("  Invalid input. Type Y/J (approve) or N (deny), then press Enter.")

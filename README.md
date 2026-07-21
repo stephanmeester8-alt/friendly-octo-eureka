@@ -59,7 +59,12 @@ pip install -r requirements.txt
 # API key MUST be quoted in PowerShell (keys often start with "AQ.")
 $env:GEMINI_API_KEY = "your-api-key-here"
 
-py main.py "Your task prompt here"
+# IMPORTANT: use `python`, not `py`, once the venv is activated.
+# `py` can bypass the venv and load an older system-wide google-genai.
+python main.py "Your task prompt here"
+
+# Or use the helper script (always targets .venv):
+.\run.ps1 "Your task prompt here"
 ```
 
 Or persist the key in a `.env` file (recommended):
@@ -67,15 +72,16 @@ Or persist the key in a `.env` file (recommended):
 ```powershell
 Copy-Item .env.example .env
 # Edit .env and paste your key, then:
-py main.py
+python main.py
 ```
 
 ### Common errors
 
 | Error | Fix |
 |-------|-----|
+| `google-genai 1.73.1 is too old` but `pip show` reports `2.12.x` | Wrong interpreter. Use `python main.py` or `.\run.ps1`, not `py main.py`. Upgrade with `python -m pip install -U "google-genai>=2.12.0"`. |
 | `get() got an unexpected keyword argument 'interaction_id'` | Use `client.interactions.get(id=interaction_id)` — the parameter is **`id`**, not `interaction_id`. |
-| `create() got an unexpected keyword argument 'environment'` | Your `google-genai` is too old (legacy `InteractionsResource`). Upgrade inside the venv: `pip install -U "google-genai>=2.12.0"` |
+| `create() got an unexpected keyword argument 'environment'` | Your `google-genai` is too old (legacy `InteractionsResource`). Upgrade inside the venv: `python -m pip install -U "google-genai>=2.12.0"` |
 | `GEMINI_API_KEY environment variable is not set` | Set with quotes: `$env:GEMINI_API_KEY = "AQ...."` |
 | `Activate.ps1` not found | Run `py -m venv .venv` first, from the project directory. |
 

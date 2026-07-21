@@ -1,13 +1,15 @@
-"""Safe local filesystem writer — ./output/<project>/ only, post-approval."""
+"""Safe local filesystem writer — ./output/<project>/<run_id>/artifacts/ only."""
 
 from __future__ import annotations
 
+import re
 import subprocess
 import sys
 from pathlib import Path
 
 from approval import ApprovalGrant
 from config import OUTPUT_DIR
+from console import format_bytes, print_info, print_step
 from sanitize import sanitize_markdown
 from schemas import ProposedFile, WriteResult
 
@@ -21,13 +23,21 @@ def _require_approval(approval: ApprovalGrant) -> None:
         )
 
 
-def _resolve_safe_path(filename: str, output_dir: Path) -> Path:
-    """Resolve a filename to a path strictly within the run output directory."""
+def _numbered_filename(order: int, filename: str) -> str:
+    """Prefix artifact filenames with a stable order for presentation."""
+    basename = Path(filename).name
+    if re.match(r"^\d{2}_", basename):
+        return basename
+    return f"{order:02d}_{basename}"
+
+
+def _resolve_safe_path(filename: str, artifacts_dir: Path) -> Path:
+    """Resolve a filename to a path strictly within the run artifacts directory."""
     basename = Path(filename).name
     if not basename or basename in {".", ".."}:
         raise ValueError(f"Invalid filename: {filename!r}")
 
-    target = (output_dir / basename).resolve()
+    target = (artifacts_dir / basename).resolve()
     output_root = OUTPUT_DIR.resolve()
 
     if not str(target).startswith(str(output_root)):
@@ -48,35 +58,36 @@ def write_approved_files(
     proposed_files: list[ProposedFile],
     *,
     approval: ApprovalGrant,
-    output_dir: Path,
+    artifacts_dir: Path,
 ) -> list[WriteResult]:
-    """Write approved files to a project-scoped output directory."""
+    """Write approved files to the run artifacts directory."""
     _require_approval(approval)
 
     if not proposed_files:
-        print("[4/4] No files to write.")
+        print_step(4, "No files to write.")
         return []
 
-    output_dir.mkdir(parents=True, exist_ok=True)
+    artifacts_dir.mkdir(parents=True, exist_ok=True)
     results: list[WriteResult] = []
 
-    print(f"[4/4] Writing {len(proposed_files)} file(s) to {output_dir}/...")
+    print_step(4, f"Writing {len(proposed_files)} file(s) to artifacts/...")
 
-    for proposed in proposed_files:
-        target = _resolve_safe_path(proposed.filename, output_dir)
+    for order, proposed in enumerate(proposed_files, start=1):
+        numbered_name = _numbered_filename(order, proposed.filename)
+        target = _resolve_safe_path(numbered_name, artifacts_dir)
         content = _sanitize_content(proposed.filename, proposed.content)
         content_bytes = content.encode("utf-8")
         target.write_text(content, encoding="utf-8")
 
         result = WriteResult(
-            filename=proposed.filename,
+            filename=numbered_name,
             path=str(target),
             bytes_written=len(content_bytes),
         )
         results.append(result)
-        print(f"  Wrote {result.path} ({result.bytes_written} bytes)")
+        print_info(f"Wrote artifacts/{numbered_name} ({format_bytes(len(content_bytes))})")
 
-    print(f"[4/4] Successfully wrote {len(results)} file(s).")
+    print_step(4, f"Successfully wrote {len(results)} artifact(s).")
     return results
 
 
@@ -84,18 +95,18 @@ def write_summary_markdown(
     summary: str,
     *,
     approval: ApprovalGrant,
-    output_dir: Path,
+    artifacts_dir: Path,
     filename: str = "summary.md",
 ) -> WriteResult:
-    """Write the Markdown summary to the project output directory after approval."""
+    """Write the Markdown summary to the artifacts directory after approval."""
     _require_approval(approval)
 
-    output_dir.mkdir(parents=True, exist_ok=True)
-    target = _resolve_safe_path(filename, output_dir)
+    artifacts_dir.mkdir(parents=True, exist_ok=True)
+    target = _resolve_safe_path(filename, artifacts_dir)
     content = sanitize_markdown(summary)
     target.write_text(content, encoding="utf-8")
     byte_count = len(content.encode("utf-8"))
-    print(f"  Wrote summary: {target} ({byte_count} bytes)")
+    print_info(f"Wrote artifacts/{filename} ({format_bytes(byte_count)})")
     return WriteResult(
         filename=filename,
         path=str(target),
@@ -103,21 +114,18 @@ def write_summary_markdown(
     )
 
 
-def open_output_folder(output_dir: Path) -> None:
-    """Open the project output folder in the OS file manager (optional post-approval)."""
-    if not output_dir.is_dir():
-        print(f"[INFO] Output folder does not exist yet: {output_dir}", file=sys.stderr)
+def open_output_folder(run_dir: Path) -> None:
+    """Open the run output folder in the OS file manager (optional post-approval)."""
+    if not run_dir.is_dir():
+        print(f"[INFO] Output folder does not exist yet: {run_dir}", file=sys.stderr)
         return
 
-    resolved = output_dir.resolve()
-    print(f"[4/4] Opening output folder: {resolved}")
+    resolved = run_dir.resolve()
+    print_step(4, f"Opening output folder: {resolved}")
 
     try:
         if sys.platform == "win32":
-            subprocess.run(
-                ["explorer", str(resolved)],
-                check=False,
-            )
+            subprocess.run(["explorer", str(resolved)], check=False)
         elif sys.platform == "darwin":
             subprocess.run(["open", str(resolved)], check=False)
         else:

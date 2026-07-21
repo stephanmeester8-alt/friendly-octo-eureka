@@ -58,7 +58,7 @@ python3 main.py --project helix_patient_intake "Summarize intake workflow improv
 Cross-sector enterprise sales demo (built-in master prompt):
 
 ```bash
-python3 main.py --demo --project enterprise_demo_2026 --open-output
+python3 main.py --demo --compact --project enterprise_demo_2026 --open-output
 ```
 
 ### Windows (PowerShell)
@@ -80,7 +80,7 @@ $env:GEMINI_API_KEY = "your-api-key-here"
 python main.py "Your task prompt here"
 
 # Or use the helper script (always targets .venv):
-.\run.ps1 --demo --project enterprise_demo_2026 --open-output
+.\run.ps1 --demo --compact --project enterprise_demo_2026 --open-output
 ```
 
 Or persist the key in a `.env` file (recommended):
@@ -120,14 +120,22 @@ During Antigravity polling, the terminal shows live elapsed time:
 [Antigravity] Poll 4/360 — status: in_progress (15s elapsed)
 ```
 
-Approved artifacts land in a per-project folder, for example:
+Approved artifacts land in a timestamped, audit-ready run folder:
 
 ```text
-./output/acme_compliance_review_2026/
-├── summary.md
-├── risk_assessment.md
-└── implementation_plan.md
+output/
+└── enterprise_demo_2026/
+    └── 20260721_143052/
+        ├── INDEX.md              ← start here (prospect-friendly)
+        ├── run_manifest.json     ← audit trail
+        └── artifacts/
+            ├── 01_business_analysis.md
+            ├── 02_improvement_plan.csv
+            ├── 03_change_management.md
+            └── summary.md
 ```
+
+Use `--compact` for a sales-friendly terminal and HITL review table.
 
 ### Sector examples
 
@@ -149,14 +157,17 @@ Approved artifacts land in a per-project folder, for example:
 ├── agents.py       # Antigravity agent execution + status polling
 ├── postprocess.py  # Dynamic model routing (gemini-3.5-flash)
 ├── approval.py     # HITL security approval gate
-├── project_paths.py # Project slug + ./output/<project>/ routing
+├── console.py      # Unified terminal presentation (--compact mode)
+├── manifest.py     # INDEX.md + run_manifest.json generation
+├── project_paths.py # Project slug + timestamped run paths
 ├── sanitize.py     # Markdown sanitization before disk writes
 ├── writer.py       # Safe local file writer (./output/<project>/ only)
 ├── main.py         # CLI entry point
 ├── run.ps1         # Windows helper (forces .venv python)
 ├── requirements.txt
 └── output/         # Created at runtime after approval
-    └── <project>/  # One subfolder per run / --project slug
+    └── <project>/  # Project namespace
+        └── <run_id>/  # Timestamped run (YYYYMMDD_HHMMSS)
 ```
 
 ## Architecture Notes

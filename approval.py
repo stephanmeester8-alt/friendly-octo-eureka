@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import sys
 
+from console import format_bytes, is_compact, metadata_value, truncate_text
 from schemas import PostProcessPayload, ProposedFile
 
 
@@ -55,10 +56,52 @@ def display_approval_summary(payload: PostProcessPayload) -> None:
     print("\n" + "=" * 72)
 
 
-def display_output_target(project_slug: str, output_dir: str) -> None:
+def display_approval_summary_compact(
+    payload: PostProcessPayload,
+    *,
+    project_slug: str,
+    run_id: str,
+    output_dir: str,
+) -> None:
+    """Render a compact, sales-friendly HITL review table."""
+    metadata = payload.metadata
+    company = metadata_value(metadata, "company_name", "client_name", "organization")
+    sector = metadata_value(metadata, "sector", "industry")
+    total_bytes = sum(len(item.content.encode("utf-8")) for item in payload.proposed_files)
+
+    print("\n" + "┌─ HITL REVIEW " + "─" * 57)
+    print(f"│ Bedrijf:   {company[:54]}")
+    print(f"│ Sector:    {sector[:54]}")
+    print(
+        f"│ Bestanden: {len(payload.proposed_files)} | "
+        f"Totaal: {format_bytes(total_bytes)}"
+    )
+    print("├" + "─" * 71)
+    print("│  #  Bestand                         Grootte   Beschrijving")
+    print("├" + "─" * 71)
+
+    if not payload.proposed_files:
+        print("│  (geen bestanden voorgesteld)")
+    else:
+        for index, proposed in enumerate(payload.proposed_files, start=1):
+            size = format_bytes(len(proposed.content.encode("utf-8")))
+            name = proposed.filename[:28]
+            description = truncate_text(proposed.description, 28)
+            print(
+                f"│ {index:>2}  {name:<28} {size:>7}   {description}"
+            )
+
+    print("├" + "─" * 71)
+    print(f"│ Output: .\\output\\{project_slug}\\{run_id}\\")
+    print(f"│         {output_dir}")
+    print("└" + "─" * 71)
+
+
+def display_output_target(project_slug: str, run_id: str, output_dir: str) -> None:
     """Show where approved files will be written."""
-    print(f"\n[INFO] Approved files will be written to: .\\output\\{project_slug}\\")
-    print(f"       Full path: {output_dir}")
+    print(f"\n[INFO] Approved files will be written to:")
+    print(f"       .\\output\\{project_slug}\\{run_id}\\artifacts\\")
+    print(f"       {output_dir}")
 
 
 def _display_proposed_file(index: int, proposed: ProposedFile) -> None:
@@ -73,15 +116,22 @@ def request_approval(
     payload: PostProcessPayload,
     *,
     project_slug: str,
+    run_id: str,
     output_dir: str,
 ) -> ApprovalGrant | None:
-    """Display output and prompt for explicit Y/N permission before disk writes.
-
-    Returns an :class:`ApprovalGrant` when approved; ``None`` when denied.
-    """
+    """Display output and prompt for explicit Y/N permission before disk writes."""
     print("[3/4] Awaiting Human-in-the-Loop approval...")
-    display_approval_summary(payload)
-    display_output_target(project_slug, output_dir)
+
+    if is_compact():
+        display_approval_summary_compact(
+            payload,
+            project_slug=project_slug,
+            run_id=run_id,
+            output_dir=output_dir,
+        )
+    else:
+        display_approval_summary(payload)
+        display_output_target(project_slug, run_id, output_dir)
 
     if not payload.proposed_files:
         print(

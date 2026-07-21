@@ -5,13 +5,21 @@ from __future__ import annotations
 
 import argparse
 import sys
+from datetime import datetime, timezone
 from pathlib import Path
 
 from agents import run_antigravity_agent
 from approval import request_approval
 from client import get_client
+from console import print_banner, print_completion, print_run_paths, print_task, set_compact
+from manifest import (
+    build_index_markdown,
+    build_run_manifest,
+    write_index_markdown,
+    write_run_manifest,
+)
 from postprocess import route_and_reformat
-from project_paths import resolve_run_output_dir
+from project_paths import resolve_run_paths
 from schemas import PipelineResult
 from writer import open_output_folder, write_approved_files, write_summary_markdown
 
@@ -53,6 +61,11 @@ def build_parser() -> argparse.ArgumentParser:
         ),
     )
     parser.add_argument(
+        "--compact",
+        action="store_true",
+        help="Sales-friendly compact terminal output and HITL review table.",
+    )
+    parser.add_argument(
         "--demo",
         action="store_true",
         help=(
@@ -69,7 +82,7 @@ def build_parser() -> argparse.ArgumentParser:
         "--write-summary",
         action="store_true",
         default=True,
-        help="Write the Markdown summary to the project folder after approval (default: True).",
+        help="Write the Markdown summary to artifacts/ after approval (default: True).",
     )
     parser.add_argument(
         "--no-write-summary",
@@ -80,7 +93,7 @@ def build_parser() -> argparse.ArgumentParser:
     parser.add_argument(
         "--open-output",
         action="store_true",
-        help="Open the project output folder in the OS file manager after approval.",
+        help="Open the run output folder in the OS file manager after approval.",
     )
     return parser
 
@@ -91,34 +104,31 @@ def run_pipeline(
     project: str | None = None,
     write_summary: bool = True,
     open_output: bool = False,
+    compact: bool = False,
 ) -> PipelineResult:
     """Execute the full four-step pipeline."""
-    project_slug, output_dir_str = resolve_run_output_dir(prompt, project=project)
-    output_dir = Path(output_dir_str)
+    set_compact(compact)
+    created_at = datetime.now(timezone.utc).isoformat()
+    paths = resolve_run_paths(prompt, project=project)
 
-    print("=" * 72)
-    print("  Enterprise AI Workspace Pipeline")
-    print("  Antigravity → Gemini Router → HITL Gate → Safe Writer")
-    print("=" * 72)
-    print(f"\nTask: {prompt}\n")
-    print(f"Project output: .\\output\\{project_slug}\\")
+    print_banner()
+    print_task(prompt)
+    print_run_paths(paths.project_slug, paths.run_id, paths.run_dir_str)
 
     client = get_client()
 
-    # Step 1: Antigravity agent (background + poll)
     agent_result = run_antigravity_agent(prompt, client=client)
 
-    # Step 2: Dynamic model routing via previous_interaction_id
-    postprocess_payload = route_and_reformat(
+    postprocess_payload, routing_interaction_id = route_and_reformat(
         agent_result.interaction_id,
         client=client,
     )
 
-    # Step 3: Human-in-the-Loop approval gate
     approval = request_approval(
         postprocess_payload,
-        project_slug=project_slug,
-        output_dir=output_dir_str,
+        project_slug=paths.project_slug,
+        run_id=paths.run_id,
+        output_dir=paths.run_dir_str,
     )
     approved = approval is not None
 
@@ -127,18 +137,43 @@ def run_pipeline(
         written_files = write_approved_files(
             postprocess_payload.proposed_files,
             approval=approval,
-            output_dir=output_dir,
+            artifacts_dir=paths.artifacts_dir,
         )
         if write_summary and postprocess_payload.summary_markdown:
             written_files.append(
                 write_summary_markdown(
                     postprocess_payload.summary_markdown,
                     approval=approval,
-                    output_dir=output_dir,
+                    artifacts_dir=paths.artifacts_dir,
                 )
             )
+
+        completed_at = datetime.now(timezone.utc).isoformat()
+        index_content = build_index_markdown(
+            run_id=paths.run_id,
+            project_slug=paths.project_slug,
+            created_at=created_at,
+            approved=approved,
+            postprocess=postprocess_payload,
+            written_files=written_files,
+        )
+        write_index_markdown(paths.run_dir, index_content)
+        manifest = build_run_manifest(
+            run_id=paths.run_id,
+            project_slug=paths.project_slug,
+            prompt=prompt,
+            created_at=created_at,
+            completed_at=completed_at,
+            approved=approved,
+            agent_result=agent_result,
+            postprocess=postprocess_payload,
+            routing_interaction_id=routing_interaction_id,
+            written_files=written_files,
+        )
+        write_run_manifest(paths.run_dir, manifest)
+
         if open_output:
-            open_output_folder(output_dir)
+            open_output_folder(paths.run_dir)
     else:
         print("[4/4] Skipped — no files written (approval denied).")
 
@@ -146,19 +181,19 @@ def run_pipeline(
         agent_result=agent_result,
         postprocess=postprocess_payload,
         approved=approved,
-        project_slug=project_slug,
-        output_dir=output_dir_str,
+        project_slug=paths.project_slug,
+        run_id=paths.run_id,
+        output_dir=paths.run_dir_str,
         written_files=written_files,
     )
 
-    print("\n" + "=" * 72)
-    print("  Pipeline Complete")
-    print(f"  Project: {project_slug}")
-    print(f"  Approved: {approved}")
-    print(f"  Files written: {len(written_files)}")
-    if approved:
-        print(f"  Output folder: {output_dir_str}")
-    print("=" * 72)
+    print_completion(
+        project_slug=paths.project_slug,
+        run_id=paths.run_id,
+        approved=approved,
+        files_written=len(written_files),
+        output_dir=paths.run_dir_str if approved else None,
+    )
 
     return result
 
@@ -174,6 +209,7 @@ def main() -> None:
             project=args.project,
             write_summary=args.write_summary,
             open_output=args.open_output,
+            compact=args.compact,
         )
     except KeyboardInterrupt:
         print("\n[INFO] Pipeline interrupted.", file=sys.stderr)

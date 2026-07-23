@@ -1,0 +1,45 @@
+# Local AI Workspace Cockpit — Cursor Rules
+
+You are building a **Local AI Workspace Cockpit**: a local-first, highly secure agentic AI orchestration platform.
+
+## Priorities
+
+1. **Clean Architecture** — Strict separation between UI (`cockpit/`), Orchestration/Gateway (API routes), and File Execution (`workspace/projects/`).
+2. **Local Sovereignty** — All artifacts, code, and logs persist under `workspace/projects/<project_slug>/`.
+3. **Production-Grade Code** — Type-safe TypeScript, resilient error handling, no mock placeholders unless explicitly requested.
+
+## Tech Stack
+
+- **Frontend:** Next.js App Router, React 19, Tailwind CSS, shadcn-style components
+- **API:** Next.js Route Handlers (Node runtime) for filesystem + SSE telemetry
+- **Storage root:** `workspace/projects/` (override via `WORKSPACE_ROOT`)
+
+## Domain Types
+
+All shared types live in `cockpit/src/types/cockpit.ts`:
+
+- `AgentTask`, `ExecutionStatus`, `AgentEvent`, `ProjectFile`, `ProjectMetadata`
+
+## File System Safety
+
+- Sanitize paths via `resolveProjectPath()` — reject directory traversal
+- Writes are scoped to `workspace/projects/`
+- HITL approval required before high-risk tool execution
+
+## Initial Scaffold (completed)
+
+1. `cockpit/src/types/cockpit.ts` — Domain definitions
+2. `cockpit/src/app/api/files/route.ts` — File tree read/write API
+3. `cockpit/src/components/layout/dashboard-shell.tsx` — Three-pane dashboard
+
+## Directory Standard
+
+```text
+workspace/
+└── projects/
+    └── <project_slug>/
+        ├── src/
+        ├── docs/
+        ├── logs/
+        └── metadata.json
+```

@@ -1,51 +1,18 @@
 import { NextRequest } from "next/server";
 
+import { getGatewayClient, getGatewayEventBus } from "@/lib/gateway";
 import type { AgentEvent } from "@/types/cockpit";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
 
-const DEMO_EVENTS: Omit<AgentEvent, "id" | "timestamp">[] = [
-  {
-    agentName: "ArchitectAgent",
-    type: "THOUGHT",
-    payload: {
-      message: "Analyzing project structure under workspace/projects/",
-    },
-  },
-  {
-    agentName: "CoderAgent",
-    type: "TOOL_CALL",
-    payload: {
-      tool: "read_file",
-      path: "demo-project/src/index.ts",
-    },
-  },
-  {
-    agentName: "CoderAgent",
-    type: "APPROVAL_REQUEST",
-    payload: {
-      requestId: "apr-demo-001",
-      toolName: "shell_exec",
-      description: "Run npm test in demo-project",
-      riskLevel: "high",
-    },
-  },
-];
-
-function createEvent(
-  partial: Omit<AgentEvent, "id" | "timestamp">,
-): AgentEvent {
-  return {
-    ...partial,
-    id: crypto.randomUUID(),
-    timestamp: new Date().toISOString(),
-  };
+function encodeSseEvent(event: AgentEvent): string {
+  return `data: ${JSON.stringify(event)}\n\n`;
 }
 
 export async function GET(request: NextRequest): Promise<Response> {
   const encoder = new TextEncoder();
-  let eventIndex = 0;
+  const bus = getGatewayEventBus();
   let closed = false;
 
   request.signal.addEventListener("abort", () => {
@@ -56,33 +23,45 @@ export async function GET(request: NextRequest): Promise<Response> {
     start(controller) {
       const send = (event: AgentEvent) => {
         if (closed) return;
-        controller.enqueue(
-          encoder.encode(`data: ${JSON.stringify(event)}\n\n`),
-        );
+        controller.enqueue(encoder.encode(encodeSseEvent(event)));
       };
 
-      send(
-        createEvent({
-          agentName: "System",
-          type: "THOUGHT",
-          payload: { message: "Agent monitor connected via SSE" },
-        }),
-      );
+      for (const event of bus.getHistory(25).reverse()) {
+        send(event);
+      }
 
-      const interval = setInterval(() => {
+      const unsubscribe = bus.subscribe(send);
+
+      void getGatewayClient()
+        .ensureConnected()
+        .catch((error) => {
+          send({
+            id: crypto.randomUUID(),
+            timestamp: new Date().toISOString(),
+            agentName: "System",
+            type: "ERROR",
+            payload: {
+              message:
+                error instanceof Error
+                  ? error.message
+                  : "Failed to connect to OpenClaw gateway",
+            },
+          });
+        });
+
+      const heartbeat = setInterval(() => {
         if (closed) {
-          clearInterval(interval);
+          clearInterval(heartbeat);
           controller.close();
           return;
         }
-
-        const template = DEMO_EVENTS[eventIndex % DEMO_EVENTS.length];
-        send(createEvent(template));
-        eventIndex += 1;
-      }, 4000);
+        controller.enqueue(encoder.encode(": heartbeat\n\n"));
+      }, 15_000);
 
       request.signal.addEventListener("abort", () => {
-        clearInterval(interval);
+        closed = true;
+        clearInterval(heartbeat);
+        unsubscribe();
         controller.close();
       });
     },

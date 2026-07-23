@@ -19,6 +19,7 @@ import type { ProjectFile } from "@/types/cockpit";
 
 interface ProjectExplorerProps {
   selectedPath: string | null;
+  refreshKey?: number;
   onSelectFile: (path: string) => void;
 }
 
@@ -107,6 +108,7 @@ function TreeNode({
 
 export function ProjectExplorer({
   selectedPath,
+  refreshKey = 0,
   onSelectFile,
 }: ProjectExplorerProps): React.JSX.Element {
   const [tree, setTree] = React.useState<ProjectFile[]>([]);
@@ -135,6 +137,9 @@ export function ProjectExplorer({
     const controller = new AbortController();
 
     const fetchTree = async () => {
+      if (tree.length === 0) {
+        setLoading(true);
+      }
       try {
         const response = await fetch("/api/files", {
           signal: controller.signal,
@@ -158,7 +163,7 @@ export function ProjectExplorer({
     void fetchTree();
 
     return () => controller.abort();
-  }, []);
+  }, [refreshKey]);
 
   return (
     <div className="flex h-full flex-col border-r border-border bg-card">

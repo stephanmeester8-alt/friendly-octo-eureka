@@ -42,10 +42,12 @@ function summarizePayload(event: AgentEvent): string {
 
 interface AgentMonitorProps {
   onApprovalRequest?: (event: AgentEvent) => void;
+  onFileWrite?: (event: AgentEvent) => void;
 }
 
 export function AgentMonitor({
   onApprovalRequest,
+  onFileWrite,
 }: AgentMonitorProps): React.JSX.Element {
   const [events, setEvents] = React.useState<AgentEvent[]>([]);
   const [connected, setConnected] = React.useState(false);
@@ -68,13 +70,17 @@ export function AgentMonitor({
           onApprovalRequest?.(event);
         }
       }
+
+      if (event.type === "FILE_WRITE") {
+        onFileWrite?.(event);
+      }
     };
 
     return () => {
       source.close();
       setConnected(false);
     };
-  }, [onApprovalRequest]);
+  }, [onApprovalRequest, onFileWrite]);
 
   return (
     <div className="flex h-full flex-col border-l border-border bg-card">

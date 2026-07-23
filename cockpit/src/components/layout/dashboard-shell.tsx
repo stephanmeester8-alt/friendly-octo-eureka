@@ -9,32 +9,69 @@ import { CodeViewer } from "@/components/editor/code-viewer";
 import { PromptInput } from "@/components/editor/prompt-input";
 import { ProjectExplorer } from "@/components/explorer/project-explorer";
 import { StatusBadge } from "@/components/ui/badge";
-import type { AgentEvent } from "@/types/cockpit";
+import type { AgentEvent, ExecutionStatus } from "@/types/cockpit";
+
+async function resolveApproval(
+  approvalId: string,
+  decision: "approve" | "deny",
+  kind?: string,
+): Promise<void> {
+  const response = await fetch("/api/agent/approval", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ approvalId, decision, kind }),
+  });
+
+  if (!response.ok) {
+    const body = (await response.json()) as { error?: string };
+    throw new Error(body.error ?? "Failed to resolve approval");
+  }
+}
 
 export function DashboardShell(): React.JSX.Element {
-  const [selectedPath, setSelectedPath] = React.useState<string | null>(null);
+  const [selectedPath, setSelectedPath] = React.useState<string | null>(
+    "demo-project/src/index.ts",
+  );
   const [approvalRequest, setApprovalRequest] =
     React.useState<AgentEvent | null>(null);
+  const [executionStatus, setExecutionStatus] =
+    React.useState<ExecutionStatus>("IDLE");
+  const [explorerRefreshKey, setExplorerRefreshKey] = React.useState(0);
 
   const projectSlug = selectedPath?.split("/")[0];
 
   const handleApprovalRequest = React.useCallback((event: AgentEvent) => {
     setApprovalRequest(event);
+    setExecutionStatus("WAITING_APPROVAL");
   }, []);
 
-  const handleApprove = (requestId: string) => {
-    console.info("[HITL] Approved:", requestId);
-    setApprovalRequest(null);
+  const handleApprove = async (requestId: string, kind?: string) => {
+    try {
+      await resolveApproval(requestId, "approve", kind);
+      setApprovalRequest(null);
+      setExecutionStatus("RUNNING");
+    } catch (error) {
+      console.error(error);
+    }
   };
 
-  const handleDeny = (requestId: string) => {
-    console.info("[HITL] Denied:", requestId);
-    setApprovalRequest(null);
+  const handleDeny = async (requestId: string, kind?: string) => {
+    try {
+      await resolveApproval(requestId, "deny", kind);
+      setApprovalRequest(null);
+      setExecutionStatus("IDLE");
+    } catch (error) {
+      console.error(error);
+    }
   };
 
-  const handlePromptSubmit = (prompt: string) => {
-    console.info("[Agent] Prompt submitted:", { projectSlug, prompt });
+  const handlePromptSubmitted = () => {
+    setExecutionStatus("RUNNING");
   };
+
+  const handleFileWrite = React.useCallback(() => {
+    setExplorerRefreshKey((current) => current + 1);
+  }, []);
 
   return (
     <div className="flex h-screen flex-col bg-background text-foreground">
@@ -46,7 +83,7 @@ export function DashboardShell(): React.JSX.Element {
               Local Workspace Cockpit
             </span>
           </div>
-          <StatusBadge status="RUNNING" />
+          <StatusBadge status={executionStatus} />
         </div>
 
         <div className="flex items-center gap-4 text-xs text-muted-foreground">
@@ -56,20 +93,21 @@ export function DashboardShell(): React.JSX.Element {
           </span>
           <span className="flex items-center gap-1.5">
             <Activity className="h-3.5 w-3.5" />
-            Gateway 127.0.0.1:18789
+            OpenClaw Gateway
           </span>
         </div>
       </header>
 
       <HitlBanner
         request={approvalRequest}
-        onApprove={handleApprove}
-        onDeny={handleDeny}
+        onApprove={(requestId, kind) => void handleApprove(requestId, kind)}
+        onDeny={(requestId, kind) => void handleDeny(requestId, kind)}
       />
 
       <div className="grid min-h-0 flex-1 grid-cols-[260px_1fr_320px]">
         <ProjectExplorer
           selectedPath={selectedPath}
+          refreshKey={explorerRefreshKey}
           onSelectFile={setSelectedPath}
         />
 
@@ -79,11 +117,14 @@ export function DashboardShell(): React.JSX.Element {
           </div>
           <PromptInput
             projectSlug={projectSlug}
-            onSubmit={handlePromptSubmit}
+            onSubmitted={handlePromptSubmitted}
           />
         </div>
 
-        <AgentMonitor onApprovalRequest={handleApprovalRequest} />
+        <AgentMonitor
+          onApprovalRequest={handleApprovalRequest}
+          onFileWrite={handleFileWrite}
+        />
       </div>
     </div>
   );

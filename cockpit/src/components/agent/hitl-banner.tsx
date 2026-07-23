@@ -8,11 +8,13 @@ import type { AgentEvent, ApprovalRequestPayload } from "@/types/cockpit";
 
 interface HitlBannerProps {
   request: AgentEvent | null;
-  onApprove: (requestId: string) => void;
-  onDeny: (requestId: string) => void;
+  onApprove: (requestId: string, kind?: string) => void;
+  onDeny: (requestId: string, kind?: string) => void;
 }
 
-function parseApprovalPayload(event: AgentEvent): ApprovalRequestPayload {
+function parseApprovalPayload(event: AgentEvent): ApprovalRequestPayload & {
+  kind?: string;
+} {
   return {
     requestId: String(event.payload.requestId ?? event.id),
     toolName: String(event.payload.toolName ?? "unknown"),
@@ -25,6 +27,7 @@ function parseApprovalPayload(event: AgentEvent): ApprovalRequestPayload {
     arguments:
       (event.payload.arguments as Record<string, unknown> | undefined) ??
       undefined,
+    kind: typeof event.payload.kind === "string" ? event.payload.kind : undefined,
   };
 }
 
@@ -61,14 +64,14 @@ export function HitlBanner({
           <Button
             variant="outline"
             size="sm"
-            onClick={() => onDeny(payload.requestId)}
+            onClick={() => onDeny(payload.requestId, payload.kind)}
           >
             <ShieldX className="h-3.5 w-3.5" />
             Deny
           </Button>
           <Button
             size="sm"
-            onClick={() => onApprove(payload.requestId)}
+            onClick={() => onApprove(payload.requestId, payload.kind)}
           >
             <ShieldCheck className="h-3.5 w-3.5" />
             Approve

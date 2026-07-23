@@ -10,6 +10,7 @@ output/
 cockpit/node_modules/
 cockpit/.next/
 cockpit/.env.local
+local-gateway/node_modules/
 
 # Local workspace runtime artifacts (keep demo scaffold)
 workspace/projects/*/logs/

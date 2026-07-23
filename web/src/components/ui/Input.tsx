@@ -9,17 +9,18 @@ interface InputProps extends InputHTMLAttributes<HTMLInputElement> {
 export function Input({ label, error, className, id, ...props }: InputProps) {
   const inputId = id ?? label?.toLowerCase().replace(/\s/g, '-')
   return (
-    <div className="space-y-1.5">
+    <div className="space-y-2">
       {label && (
-        <label htmlFor={inputId} className="block text-sm font-medium text-slate-300">
+        <label htmlFor={inputId} className="block font-mono text-[11px] font-medium uppercase tracking-wider text-zinc-500">
           {label}
         </label>
       )}
       <input
         id={inputId}
         className={clsx(
-          'w-full rounded-lg border border-slate-600/80 bg-slate-900/80 px-4 py-2.5 text-sm text-slate-100',
-          'placeholder:text-slate-500 focus:border-cyan-500/50 focus:outline-none focus:ring-2 focus:ring-cyan-500/20',
+          'w-full rounded-md border border-zinc-800 bg-zinc-950/80 px-4 py-3 text-sm text-zinc-100',
+          'placeholder:text-zinc-600 focus:border-indigo-500/50 focus:outline-none focus:ring-1 focus:ring-indigo-500/30',
+          'transition-colors duration-200',
           error && 'border-red-500/50',
           className,
         )}

@@ -46,7 +46,7 @@ export function CreditTopUpModal({ open, onClose }: CreditTopUpModalProps) {
 
   return (
     <Modal open={open} onClose={onClose} title={t.billing.title} size="lg">
-      <p className="mb-6 text-sm text-slate-400">{t.billing.subtitle}</p>
+      <p className="mb-6 text-sm text-zinc-400">{t.billing.subtitle}</p>
 
       <div className="mb-6 grid gap-3 sm:grid-cols-3">
         {PACK_CONFIG.map((p) => (
@@ -54,24 +54,24 @@ export function CreditTopUpModal({ open, onClose }: CreditTopUpModalProps) {
             key={p.id}
             onClick={() => setSelectedPack(p.id)}
             className={clsx(
-              'rounded-xl border p-4 text-left transition-all',
+              'rounded-md border p-4 text-left transition-all',
               selectedPack === p.id
-                ? 'border-cyan-500/50 bg-cyan-500/10 glow-ring'
-                : 'border-slate-700 bg-slate-900/40 hover:border-slate-600',
+                ? 'border-indigo-500/50 bg-indigo-500/10 glow-ring'
+                : 'border-zinc-800 bg-zinc-950/40 hover:border-zinc-700',
             )}
           >
             {p.popular && (
-              <span className="text-xs font-semibold text-cyan-400">{t.billing.popular}</span>
+              <span className="font-mono text-[10px] font-semibold uppercase text-emerald-400">{t.billing.popular}</span>
             )}
             <p className="font-semibold text-white">{t.billing.packs[p.key]}</p>
-            <p className="text-2xl font-bold text-white">€{p.priceEur}</p>
-            <p className="text-sm text-slate-400">{p.credits} {t.billing.packs.analyses}</p>
+            <p className="font-mono text-2xl font-bold text-white">€{p.priceEur}</p>
+            <p className="text-sm text-zinc-500">{p.credits} {t.billing.packs.analyses}</p>
           </button>
         ))}
       </div>
 
-      <div className="rounded-xl border border-slate-700 bg-slate-900/60 p-5">
-        <div className="mb-4 flex items-center gap-2 text-sm text-slate-400">
+      <div className="rounded-md border border-zinc-800 bg-zinc-950/60 p-5">
+        <div className="mb-4 flex items-center gap-2 text-sm text-zinc-500">
           <CreditCard className="h-4 w-4" />
           <span>{t.billing.stripe}</span>
           <Lock className="ml-auto h-3 w-3" />
@@ -82,30 +82,30 @@ export function CreditTopUpModal({ open, onClose }: CreditTopUpModalProps) {
             placeholder={t.billing.cardNumber}
             value={cardNumber}
             onChange={(e) => setCardNumber(e.target.value)}
-            className="w-full rounded-lg border border-slate-600 bg-slate-800 px-4 py-2.5 text-sm text-white placeholder:text-slate-500 focus:border-cyan-500/50 focus:outline-none"
+            className="w-full rounded-md border border-zinc-800 bg-zinc-950 px-4 py-2.5 text-sm text-white placeholder:text-zinc-600 focus:border-indigo-500/50 focus:outline-none focus:ring-1 focus:ring-indigo-500/30"
           />
           <div className="grid grid-cols-2 gap-3">
             <input
               placeholder={t.billing.expiry}
               value={expiry}
               onChange={(e) => setExpiry(e.target.value)}
-              className="rounded-lg border border-slate-600 bg-slate-800 px-4 py-2.5 text-sm text-white placeholder:text-slate-500 focus:border-cyan-500/50 focus:outline-none"
+              className="rounded-md border border-zinc-800 bg-zinc-950 px-4 py-2.5 text-sm text-white placeholder:text-zinc-600 focus:border-indigo-500/50 focus:outline-none focus:ring-1 focus:ring-indigo-500/30"
             />
             <input
               placeholder={t.billing.cvc}
               value={cvc}
               onChange={(e) => setCvc(e.target.value)}
-              className="rounded-lg border border-slate-600 bg-slate-800 px-4 py-2.5 text-sm text-white placeholder:text-slate-500 focus:border-cyan-500/50 focus:outline-none"
+              className="rounded-md border border-zinc-800 bg-zinc-950 px-4 py-2.5 text-sm text-white placeholder:text-zinc-600 focus:border-indigo-500/50 focus:outline-none focus:ring-1 focus:ring-indigo-500/30"
             />
           </div>
         </div>
       </div>
 
       <div className="mt-6 flex items-center justify-between">
-        <p className="text-sm text-slate-400">
-          {t.billing.total} <span className="font-semibold text-white">€{pack.priceEur}</span>
+        <p className="text-sm text-zinc-500">
+          {t.billing.total} <span className="font-mono font-semibold text-white">€{pack.priceEur}</span>
         </p>
-        <Button onClick={handleCheckout} disabled={processing}>
+        <Button variant="neon" onClick={handleCheckout} disabled={processing}>
           {processing ? t.billing.processing : `${t.billing.pay} €${pack.priceEur}`}
         </Button>
       </div>

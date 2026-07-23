@@ -30,28 +30,28 @@ export function HitlModal({ open, files, summary, onApprove, onDeny }: HitlModal
         </div>
       </div>
 
-      <div className="mb-4 max-h-32 overflow-y-auto rounded-lg bg-slate-900/60 p-4">
-        <p className="text-xs font-medium uppercase tracking-wider text-slate-500">{t.hitl.summary}</p>
-        <p className="mt-2 whitespace-pre-wrap text-sm text-slate-300 line-clamp-4">
+      <div className="mb-4 max-h-32 overflow-y-auto rounded-md border border-zinc-800 bg-zinc-950/60 p-4">
+        <p className="font-mono text-[11px] uppercase tracking-wider text-zinc-500">{t.hitl.summary}</p>
+        <p className="mt-2 line-clamp-4 whitespace-pre-wrap text-sm text-zinc-300">
           {summary.slice(0, 500)}…
         </p>
       </div>
 
-      <div className="overflow-hidden rounded-lg border border-slate-700">
+      <div className="overflow-hidden rounded-md border border-zinc-800">
         <table className="w-full text-left text-sm">
-          <thead className="bg-slate-800/80 text-xs uppercase text-slate-400">
+          <thead className="bg-zinc-900/80 font-mono text-[11px] uppercase text-zinc-500">
             <tr>
               <th className="px-4 py-3">{t.hitl.filename}</th>
               <th className="px-4 py-3">{t.hitl.description}</th>
               <th className="px-4 py-3 text-right">{t.hitl.size}</th>
             </tr>
           </thead>
-          <tbody className="divide-y divide-slate-700/50">
+          <tbody className="divide-y divide-zinc-800/80">
             {files.map((file) => (
-              <tr key={file.filename} className="hover:bg-slate-800/30">
-                <td className="px-4 py-3 font-mono text-cyan-300">{file.filename}</td>
-                <td className="px-4 py-3 text-slate-400">{file.description}</td>
-                <td className="px-4 py-3 text-right text-slate-400">
+              <tr key={file.filename} className="hover:bg-zinc-900/40">
+                <td className="px-4 py-3 font-mono text-indigo-300">{file.filename}</td>
+                <td className="px-4 py-3 text-zinc-400">{file.description}</td>
+                <td className="px-4 py-3 text-right text-zinc-500">
                   {formatSize(file.sizeBytes)}
                 </td>
               </tr>
@@ -65,7 +65,7 @@ export function HitlModal({ open, files, summary, onApprove, onDeny }: HitlModal
           <X className="h-4 w-4" />
           {t.hitl.deny}
         </Button>
-        <Button onClick={onApprove}>
+        <Button variant="neon" onClick={onApprove}>
           <Check className="h-4 w-4" />
           {t.hitl.approve}
         </Button>

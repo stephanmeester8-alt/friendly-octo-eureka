@@ -29,15 +29,15 @@ export function PipelineProgress({ stage, elapsedSeconds }: PipelineProgressProp
   }
 
   return (
-    <div className="space-y-4">
+    <div className="space-y-5">
       <div className="flex items-center justify-between">
-        <h3 className="text-sm font-semibold text-slate-300">{t.pipeline.progress}</h3>
-        <span className="font-mono text-sm text-cyan-400">
+        <p className="section-label">{t.pipeline.progress}</p>
+        <span className="font-mono text-sm text-indigo-400">
           {elapsedSeconds.toFixed(1)}s {t.pipeline.elapsed}
         </span>
       </div>
 
-      <div className="space-y-3">
+      <div className="space-y-2">
         {PIPELINE_STAGE_LABELS.map((s, i) => {
           const done = current > i
           const active = current === i
@@ -47,28 +47,26 @@ export function PipelineProgress({ stage, elapsedSeconds }: PipelineProgressProp
             <div
               key={s.key}
               className={clsx(
-                'flex items-center gap-3 rounded-lg border px-4 py-3 transition-all duration-300',
-                done && 'border-emerald-500/30 bg-emerald-500/5',
-                active && 'border-cyan-500/40 bg-cyan-500/10 glow-ring',
-                pending && 'border-slate-700/50 bg-slate-900/40 opacity-60',
+                'flex items-center gap-4 rounded-md border px-4 py-3.5 transition-all duration-500',
+                done && 'border-emerald-500/20 bg-emerald-500/5',
+                active && 'border-indigo-500/40 bg-indigo-500/5 glow-ring',
+                pending && 'border-zinc-800 bg-zinc-950/50 opacity-50',
               )}
             >
               {done ? (
-                <CheckCircle className="h-5 w-5 text-emerald-400" />
+                <CheckCircle className="h-4 w-4 text-emerald-500" />
               ) : active ? (
-                <Loader2 className="h-5 w-5 animate-spin text-cyan-400" />
+                <Loader2 className="h-4 w-4 animate-spin text-indigo-400" />
               ) : (
-                <Circle className="h-5 w-5 text-slate-600" />
+                <Circle className="h-4 w-4 text-zinc-700" />
               )}
-              <div className="flex-1">
-                <p className="text-sm font-medium text-white">
+              <div className="flex-1 min-w-0">
+                <p className="truncate text-sm font-medium text-zinc-200">
                   [{s.step}/4] {stageLabels[s.key]}
                 </p>
-                {active && s.durationMs > 0 && (
-                  <p className="text-xs text-slate-400">{t.pipeline.processing}</p>
-                )}
+                {active && <p className="font-mono text-[10px] text-zinc-500">{t.pipeline.processing}</p>}
               </div>
-              <span className="text-xs text-slate-500">{t.pipeline.step} {s.step}</span>
+              <span className="font-mono text-[10px] text-zinc-600">{t.pipeline.step} {s.step}</span>
             </div>
           )
         })}

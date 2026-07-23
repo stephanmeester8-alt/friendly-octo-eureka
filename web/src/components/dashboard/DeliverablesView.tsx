@@ -31,10 +31,10 @@ export function DeliverablesView({ result }: DeliverablesViewProps) {
     <div className="space-y-6">
       <Card glow>
         <div className="flex items-center gap-3">
-          <FileText className="h-6 w-6 text-cyan-400" />
+          <FileText className="h-6 w-6 text-emerald-400" />
           <div>
             <h3 className="text-lg font-semibold text-white">{t.deliverables.title}</h3>
-            <p className="text-sm text-slate-400">
+            <p className="text-sm text-zinc-400">
               {result.artifacts.length} {t.deliverables.generated} {result.elapsedSeconds.toFixed(1)}s
             </p>
           </div>
@@ -43,10 +43,10 @@ export function DeliverablesView({ result }: DeliverablesViewProps) {
 
       {indexFile && (
         <Card>
-          <h4 className="mb-3 text-sm font-semibold uppercase tracking-wider text-slate-400">
+          <h4 className="mb-3 font-mono text-[11px] font-medium uppercase tracking-wider text-zinc-500">
             {t.deliverables.index}
           </h4>
-          <pre className="max-h-48 overflow-auto rounded-lg bg-slate-900/80 p-4 font-mono text-xs text-slate-300">
+          <pre className="max-h-48 overflow-auto rounded-md border border-zinc-800 bg-zinc-950/80 p-4 font-mono text-xs text-zinc-300">
             {indexFile.content}
           </pre>
           <Button
@@ -62,7 +62,7 @@ export function DeliverablesView({ result }: DeliverablesViewProps) {
       )}
 
       <Card>
-        <h4 className="mb-4 text-sm font-semibold uppercase tracking-wider text-slate-400">
+        <h4 className="mb-4 font-mono text-[11px] font-medium uppercase tracking-wider text-zinc-500">
           {t.deliverables.numbered}
         </h4>
         <div className="space-y-2">
@@ -71,11 +71,11 @@ export function DeliverablesView({ result }: DeliverablesViewProps) {
             .map((artifact) => (
               <div
                 key={artifact.filename}
-                className="flex items-center justify-between rounded-lg border border-slate-700/50 bg-slate-900/40 px-4 py-3"
+                className="flex items-center justify-between rounded-md border border-zinc-800 bg-zinc-950/40 px-4 py-3"
               >
                 <div>
-                  <p className="font-mono text-sm text-cyan-300">{artifact.filename}</p>
-                  <p className="text-xs text-slate-500">
+                  <p className="font-mono text-sm text-indigo-300">{artifact.filename}</p>
+                  <p className="text-xs text-zinc-500">
                     {artifact.description} · {formatSize(artifact.sizeBytes)}
                   </p>
                 </div>
@@ -92,10 +92,10 @@ export function DeliverablesView({ result }: DeliverablesViewProps) {
       </Card>
 
       <Card>
-        <h4 className="mb-3 text-sm font-semibold uppercase tracking-wider text-slate-400">
+        <h4 className="mb-3 font-mono text-[11px] font-medium uppercase tracking-wider text-zinc-500">
           {t.deliverables.manifest}
         </h4>
-        <pre className="max-h-40 overflow-auto rounded-lg bg-slate-900/80 p-4 font-mono text-xs text-emerald-300/90">
+        <pre className="max-h-40 overflow-auto rounded-md border border-zinc-800 bg-zinc-950/80 p-4 font-mono text-xs text-emerald-300/90">
           {JSON.stringify(result.manifest, null, 2)}
         </pre>
         <Button

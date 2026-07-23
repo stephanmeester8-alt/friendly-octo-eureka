@@ -2,6 +2,7 @@ import { Footer } from '../components/layout/Footer'
 import { Navbar } from '../components/layout/Navbar'
 import { Features } from '../components/landing/Features'
 import { Hero } from '../components/landing/Hero'
+import { PipelineDemo } from '../components/landing/PipelineDemo'
 import { Pricing } from '../components/landing/Pricing'
 import { SecuritySection } from '../components/landing/SecuritySection'
 
@@ -12,6 +13,7 @@ export function LandingPage() {
       <main>
         <Hero />
         <Features />
+        <PipelineDemo />
         <SecuritySection />
         <Pricing />
       </main>

@@ -10,48 +10,47 @@ export function Navbar() {
   const navigate = useNavigate()
   const { t } = useTranslation()
 
+  const links = [
+    { href: '#features', label: t.nav.features },
+    { href: '#pipeline-demo', label: t.nav.pipeline },
+    { href: '#pricing', label: t.nav.pricing },
+    { href: '#security', label: t.nav.security },
+  ]
+
   return (
-    <header className="sticky top-0 z-40 border-b border-slate-800/80 bg-slate-950/80 backdrop-blur-xl">
+    <header className="sticky top-0 z-40 border-b border-zinc-800/60 bg-zinc-950/80 backdrop-blur-xl">
       <div className="mx-auto flex h-16 max-w-7xl items-center justify-between px-4 sm:px-6 lg:px-8">
-        <Link to="/" className="flex items-center gap-2.5">
-          <div className="flex h-9 w-9 items-center justify-center rounded-lg bg-gradient-to-br from-cyan-500 to-blue-600">
-            <Shield className="h-5 w-5 text-white" />
+        <Link to="/" className="flex items-center gap-3">
+          <div className="flex h-8 w-8 items-center justify-center rounded-md border border-indigo-500/30 bg-indigo-600/20">
+            <Shield className="h-4 w-4 text-indigo-400" />
           </div>
-          <div>
-            <span className="text-lg font-bold text-white">SovereignAI</span>
-            <span className="hidden text-xs text-slate-400 sm:inline"> Workspace</span>
-          </div>
+          <span className="font-semibold tracking-tight text-white">SovereignAI</span>
         </Link>
 
         <nav className="hidden items-center gap-8 md:flex">
-          <a href="#features" className="text-sm text-slate-400 transition hover:text-white">
-            {t.nav.features}
-          </a>
-          <a href="#pricing" className="text-sm text-slate-400 transition hover:text-white">
-            {t.nav.pricing}
-          </a>
-          <a href="#security" className="text-sm text-slate-400 transition hover:text-white">
-            {t.nav.security}
-          </a>
+          {links.map((l) => (
+            <a
+              key={l.href}
+              href={l.href}
+              className="font-mono text-[11px] uppercase tracking-wider text-zinc-500 transition hover:text-zinc-200"
+            >
+              {l.label}
+            </a>
+          ))}
         </nav>
 
         <div className="flex items-center gap-3">
           <LanguageSwitcher className="hidden sm:flex" />
           {user ? (
-            <>
-              <Button variant="ghost" size="sm" onClick={() => navigate('/dashboard')}>
-                {t.nav.dashboard}
-              </Button>
-              <Button size="sm" onClick={() => navigate('/dashboard')}>
-                {t.nav.openWorkspace}
-              </Button>
-            </>
+            <Button size="sm" variant="primary" onClick={() => navigate('/dashboard')}>
+              {t.nav.openWorkspace}
+            </Button>
           ) : (
             <>
               <Button variant="ghost" size="sm" onClick={() => navigate('/login')}>
                 {t.nav.login}
               </Button>
-              <Button size="sm" onClick={() => navigate('/signup')}>
+              <Button size="sm" variant="neon" onClick={() => navigate('/signup')}>
                 {t.nav.startTrial}
               </Button>
             </>

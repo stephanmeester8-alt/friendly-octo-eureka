@@ -29,21 +29,14 @@ export function Modal({ open, onClose, title, children, size = 'md' }: ModalProp
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
+      <div className="absolute inset-0 bg-zinc-950/90 backdrop-blur-sm" onClick={onClose} aria-hidden />
       <div
-        className="absolute inset-0 bg-slate-950/80 backdrop-blur-sm"
-        onClick={onClose}
-        aria-hidden
-      />
-      <div
-        className={`relative w-full ${sizes[size]} glass glow-ring animate-in fade-in zoom-in-95 rounded-2xl p-6`}
+        className={`relative w-full ${sizes[size]} glass-strong glow-ring rounded-lg p-8`}
         role="dialog"
         aria-modal
-        aria-labelledby="modal-title"
       >
-        <div className="mb-4 flex items-center justify-between">
-          <h2 id="modal-title" className="text-lg font-semibold text-white">
-            {title}
-          </h2>
+        <div className="mb-6 flex items-start justify-between gap-4">
+          <h2 className="text-xl font-semibold tracking-tight text-white">{title}</h2>
           <Button variant="ghost" size="sm" onClick={onClose} aria-label="Close">
             <X className="h-4 w-4" />
           </Button>

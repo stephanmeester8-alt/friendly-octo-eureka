@@ -1,14 +1,6 @@
 import { useEffect, useState } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
-import {
-  Coins,
-  CreditCard,
-  Key,
-  LogOut,
-  Rocket,
-  Shield,
-  User,
-} from 'lucide-react'
+import { Coins, KeyRound, LogOut, Rocket, Shield, User } from 'lucide-react'
 import { PipelineWorkspace } from '../components/dashboard/PipelineWorkspace'
 import { CreditTopUpModal } from '../components/billing/CreditTopUpModal'
 import { Badge } from '../components/ui/Badge'
@@ -29,21 +21,21 @@ export function DashboardPage() {
   const [apiKeyInput, setApiKeyInput] = useState('')
   const [showTopUp, setShowTopUp] = useState(false)
 
-  useEffect(() => {
-    init()
-  }, [init])
-
+  useEffect(() => { init() }, [init])
   useEffect(() => {
     if (initialized && !user) navigate('/login')
   }, [initialized, user, navigate])
 
   if (!initialized || !user) {
     return (
-      <div className="flex min-h-screen items-center justify-center bg-slate-950">
-        <div className="h-8 w-8 animate-spin rounded-full border-2 border-cyan-500 border-t-transparent" />
+      <div className="flex min-h-screen items-center justify-center bg-zinc-950">
+        <div className="h-6 w-6 animate-spin rounded-full border-2 border-indigo-500 border-t-transparent" />
       </div>
     )
   }
+
+  const existingKey = getApiKey()
+  const creditPct = Math.min(100, (user.credits / 10) * 100)
 
   const handleSaveKey = () => {
     if (!apiKeyInput.trim()) {
@@ -55,32 +47,27 @@ export function DashboardPage() {
     addToast(t.dashboard.keySaved, 'success')
   }
 
-  const existingKey = getApiKey()
-
   const tierBadge = {
     trial: 'info' as const,
-    pilot: 'purple' as const,
-    pro: 'success' as const,
+    pilot: 'indigo' as const,
+    pro: 'neon' as const,
     enterprise: 'warning' as const,
   }
 
   return (
-    <div className="min-h-screen bg-slate-950">
-      <header className="border-b border-slate-800/80 bg-slate-950/80 backdrop-blur-xl">
-        <div className="mx-auto flex h-16 max-w-7xl items-center justify-between px-4 sm:px-6 lg:px-8">
+    <div className="min-h-screen bg-zinc-950">
+      <div className="terminal-grid pointer-events-none fixed inset-0 opacity-20" />
+
+      <header className="relative border-b border-zinc-800/60 bg-zinc-950/90 backdrop-blur-xl">
+        <div className="mx-auto flex h-14 max-w-7xl items-center justify-between px-4 sm:px-6">
           <Link to="/" className="flex items-center gap-2">
-            <Shield className="h-6 w-6 text-cyan-400" />
-            <span className="font-bold text-white">{t.dashboard.title}</span>
+            <Shield className="h-4 w-4 text-indigo-400" />
+            <span className="text-sm font-semibold text-white">{t.dashboard.title}</span>
+            <Badge variant="neon" className="ml-2 hidden sm:inline-flex">LIVE</Badge>
           </Link>
           <div className="flex items-center gap-4">
             <LanguageSwitcher />
-            <div className="hidden items-center gap-2 sm:flex">
-              <Coins className="h-4 w-4 text-amber-400" />
-              <span className="text-sm font-medium text-white">
-                {user.credits} {t.dashboard.credits}
-              </span>
-            </div>
-            <Badge variant={tierBadge[user.tier]}>{user.tier.toUpperCase()}</Badge>
+            <Badge variant={tierBadge[user.tier]}>{user.tier}</Badge>
             <Button variant="ghost" size="sm" onClick={() => signOut().then(() => navigate('/'))}>
               <LogOut className="h-4 w-4" />
             </Button>
@@ -88,68 +75,77 @@ export function DashboardPage() {
         </div>
       </header>
 
-      <main className="mx-auto max-w-7xl px-4 py-8 sm:px-6 lg:px-8">
-        <div className="grid gap-8 lg:grid-cols-3">
-          <div className="lg:col-span-2">
+      <main className="relative mx-auto max-w-7xl px-4 py-8 sm:px-6">
+        <div className="grid gap-8 lg:grid-cols-12">
+          <div className="lg:col-span-8">
             <PipelineWorkspace onNeedCredits={() => setShowTopUp(true)} />
           </div>
 
-          <div className="space-y-6">
-            <Card>
-              <div className="flex items-center gap-2">
-                <User className="h-5 w-5 text-cyan-400" />
-                <h3 className="font-semibold text-white">{t.dashboard.profile}</h3>
+          <div className="space-y-4 lg:col-span-4">
+            {/* Credit Monitor */}
+            <Card strong glow>
+              <div className="flex items-center justify-between">
+                <div className="flex items-center gap-2">
+                  <Coins className="h-4 w-4 text-emerald-400" />
+                  <span className="text-sm font-semibold text-white">{t.dashboard.creditMonitor}</span>
+                </div>
+                <span className="font-mono text-2xl font-bold text-white">{user.credits}</span>
               </div>
-              <p className="mt-3 text-sm text-slate-400">{user.email}</p>
-              <div className="mt-4 flex items-center justify-between rounded-lg bg-slate-900/60 px-3 py-2">
-                <span className="text-sm text-slate-300">{t.dashboard.credits}</span>
-                <span className="font-bold text-amber-400">{user.credits}</span>
+              <p className="mt-1 text-xs text-zinc-500">{t.dashboard.creditMonitorSub}</p>
+              <div className="mt-4 h-1.5 overflow-hidden rounded-full bg-zinc-800">
+                <div
+                  className="h-full rounded-full bg-gradient-to-r from-indigo-500 to-emerald-500 transition-all duration-500"
+                  style={{ width: `${creditPct}%` }}
+                />
               </div>
+              <Button variant="secondary" size="sm" className="mt-4 w-full" onClick={() => setShowTopUp(true)}>
+                {t.dashboard.topUp}
+              </Button>
             </Card>
 
-            <Card>
-              <div className="flex items-center gap-2">
-                <Key className="h-5 w-5 text-cyan-400" />
-                <h3 className="font-semibold text-white">{t.dashboard.byokTitle}</h3>
+            {/* BYOK Vault */}
+            <Card strong>
+              <div className="flex items-center justify-between">
+                <div className="flex items-center gap-2">
+                  <KeyRound className="h-4 w-4 text-indigo-400" />
+                  <span className="text-sm font-semibold text-white">{t.dashboard.vault}</span>
+                </div>
+                <Badge variant={existingKey ? 'neon' : 'default'}>
+                  {existingKey ? t.dashboard.vaultActive : t.dashboard.vaultLocked}
+                </Badge>
               </div>
-              <p className="mt-2 text-xs text-slate-500">{t.dashboard.byokSub}</p>
+              <p className="mt-2 text-xs text-zinc-500">{t.dashboard.vaultSub}</p>
               {existingKey && (
-                <p className="mt-3 font-mono text-sm text-emerald-400">
+                <div className="mt-4 rounded-md border border-zinc-800 bg-zinc-950 px-4 py-3 font-mono text-xs text-emerald-400/80">
                   {maskApiKey(existingKey)}
-                </p>
+                </div>
               )}
-              <div className="mt-3 space-y-2">
+              <div className="mt-4 space-y-2">
                 <Input
                   type="password"
-                  placeholder="AQ.your-gemini-api-key"
+                  placeholder="AQ.••••••••"
                   value={apiKeyInput}
                   onChange={(e) => setApiKeyInput(e.target.value)}
                 />
-                <Button variant="secondary" size="sm" className="w-full" onClick={handleSaveKey}>
+                <Button variant="primary" size="sm" className="w-full" onClick={handleSaveKey}>
                   {t.dashboard.saveKey}
                 </Button>
               </div>
             </Card>
 
+            {/* Operator */}
             <Card>
               <div className="flex items-center gap-2">
-                <CreditCard className="h-5 w-5 text-cyan-400" />
-                <h3 className="font-semibold text-white">{t.dashboard.billing}</h3>
+                <User className="h-4 w-4 text-zinc-500" />
+                <span className="text-sm font-semibold text-white">{t.dashboard.profile}</span>
               </div>
-              <div className="mt-4 space-y-2">
-                <Button className="w-full" onClick={() => setShowTopUp(true)}>
-                  {t.dashboard.topUp}
-                </Button>
-                <Button
-                  variant="secondary"
-                  className="w-full"
-                  onClick={() => navigate('/pilot')}
-                >
-                  <Rocket className="h-4 w-4" />
-                  {t.dashboard.requestPilot}
-                </Button>
-              </div>
+              <p className="mt-3 font-mono text-xs text-zinc-500">{user.email}</p>
             </Card>
+
+            <Button variant="neon" className="w-full" onClick={() => navigate('/pilot')}>
+              <Rocket className="h-4 w-4" />
+              {t.dashboard.requestPilot}
+            </Button>
           </div>
         </div>
       </main>

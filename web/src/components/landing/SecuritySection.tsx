@@ -1,22 +1,41 @@
-import { Shield } from 'lucide-react'
 import { useTranslation } from '../../store/useLocaleStore'
 
 export function SecuritySection() {
   const { t } = useTranslation()
 
   return (
-    <section id="security" className="border-y border-slate-800/80 bg-slate-900/30 px-4 py-20 sm:px-6 lg:px-8">
-      <div className="mx-auto flex max-w-4xl flex-col items-center text-center">
-        <Shield className="h-12 w-12 text-cyan-400" />
-        <h2 className="mt-6 text-3xl font-bold text-white">{t.security.title}</h2>
-        <p className="mt-4 text-slate-400">{t.security.subtitle}</p>
-        <div className="mt-10 grid w-full gap-4 sm:grid-cols-4">
-          {t.security.steps.map((step, i) => (
-            <div key={step} className="glass rounded-xl p-4">
-              <div className="text-2xl font-bold text-cyan-400">{i + 1}</div>
-              <p className="mt-1 text-sm font-medium text-white">{step}</p>
-            </div>
-          ))}
+    <section id="security" className="border-t border-zinc-800/50 bg-zinc-950 px-4 py-28 sm:px-6 lg:px-8">
+      <div className="mx-auto max-w-7xl">
+        <div className="mb-12">
+          <p className="section-label">{t.security.label}</p>
+          <h2 className="mt-4 text-4xl font-bold tracking-tight text-white">{t.security.title}</h2>
+          <p className="mt-4 max-w-xl text-zinc-400">{t.security.subtitle}</p>
+        </div>
+
+        <div className="overflow-hidden rounded-lg border border-zinc-800">
+          <table className="w-full text-left text-sm">
+            <thead>
+              <tr className="border-b border-zinc-800 bg-zinc-900/80">
+                <th className="px-6 py-4 font-mono text-[11px] font-medium uppercase tracking-wider text-zinc-500">Layer</th>
+                <th className="px-6 py-4 font-mono text-[11px] font-medium uppercase tracking-wider text-zinc-500">Component</th>
+                <th className="px-6 py-4 font-mono text-[11px] font-medium uppercase tracking-wider text-zinc-500">Status</th>
+              </tr>
+            </thead>
+            <tbody className="divide-y divide-zinc-800/80">
+              {t.security.steps.map((step, i) => (
+                <tr key={step} className="hover:bg-zinc-900/30">
+                  <td className="px-6 py-4 font-mono text-zinc-600">0{i + 1}</td>
+                  <td className="px-6 py-4 font-medium text-zinc-200">{step}</td>
+                  <td className="px-6 py-4">
+                    <span className="inline-flex items-center gap-2 font-mono text-xs text-emerald-400">
+                      <span className="h-1.5 w-1.5 rounded-full bg-emerald-500" />
+                      ACTIVE
+                    </span>
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
         </div>
       </div>
     </section>

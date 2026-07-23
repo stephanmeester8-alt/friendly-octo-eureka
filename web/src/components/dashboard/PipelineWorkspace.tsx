@@ -121,14 +121,14 @@ export function PipelineWorkspace({ onNeedCredits }: PipelineWorkspaceProps) {
     <div className="space-y-6">
       <Card glow>
         <h2 className="text-xl font-semibold text-white">{t.dashboard.workspaceTitle}</h2>
-        <p className="mt-1 text-sm text-slate-400">{t.dashboard.workspaceSub}</p>
+        <p className="mt-1 text-sm text-zinc-400">{t.dashboard.workspaceSub}</p>
 
         <textarea
           value={prompt}
           onChange={(e) => setPrompt(e.target.value)}
           disabled={running}
           rows={4}
-          className="mt-4 w-full rounded-lg border border-slate-600/80 bg-slate-900/80 px-4 py-3 text-sm text-slate-100 placeholder:text-slate-500 focus:border-cyan-500/50 focus:outline-none focus:ring-2 focus:ring-cyan-500/20 disabled:opacity-50"
+          className="mt-4 w-full rounded-md border border-zinc-800 bg-zinc-950/80 px-4 py-3 text-sm text-zinc-100 placeholder:text-zinc-600 focus:border-indigo-500/50 focus:outline-none focus:ring-1 focus:ring-indigo-500/30 disabled:opacity-50"
           placeholder={t.dashboard.promptPlaceholder}
         />
 

@@ -41,6 +41,10 @@ VITE_SUPABASE_ANON_KEY=your-anon-key
 
 Without Supabase, the app runs in **demo mode** using localStorage.
 
+## Languages / Talen
+
+The app supports **English** and **Dutch (Nederlands)**. Use the **EN | NL** toggle in the navbar, dashboard header, or auth pages. Your preference is saved in localStorage and auto-detected from the browser language on first visit.
+
 ## Build
 
 ```bash

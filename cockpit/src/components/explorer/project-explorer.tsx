@@ -9,9 +9,11 @@ import {
   Folder,
   FolderOpen,
   Loader2,
+  Plus,
   RefreshCw,
 } from "lucide-react";
 
+import { CreateProjectModal } from "@/components/projects/create-project-modal";
 import { Button } from "@/components/ui/button";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { cn } from "@/lib/utils";
@@ -114,6 +116,7 @@ export function ProjectExplorer({
   const [tree, setTree] = React.useState<ProjectFile[]>([]);
   const [loading, setLoading] = React.useState(true);
   const [error, setError] = React.useState<string | null>(null);
+  const [modalOpen, setModalOpen] = React.useState(false);
 
   const loadTree = React.useCallback(async () => {
     setLoading(true);
@@ -165,56 +168,84 @@ export function ProjectExplorer({
     return () => controller.abort();
   }, [refreshKey]);
 
+  const handleProjectCreated = (slug: string) => {
+    void loadTree();
+    onSelectFile(`${slug}/docs/README.md`);
+  };
+
   return (
-    <div className="flex h-full flex-col border-r border-border bg-card">
-      <div className="flex items-center justify-between border-b border-border px-3 py-2">
-        <div>
-          <p className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">
-            Explorer
-          </p>
-          <p className="text-[11px] text-muted-foreground/80">
-            workspace/projects
-          </p>
+    <>
+      <div className="flex h-full flex-col border-r border-border bg-card">
+        <div className="border-b border-border px-3 py-2">
+          <div className="mb-2 flex items-center justify-between">
+            <div>
+              <p className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">
+                Explorer
+              </p>
+              <p className="text-[11px] text-muted-foreground/80">
+                workspace/projects
+              </p>
+            </div>
+            <Button
+              variant="ghost"
+              size="icon"
+              onClick={() => void loadTree()}
+              aria-label="Refresh explorer"
+            >
+              <RefreshCw
+                className={cn("h-3.5 w-3.5", loading && "animate-spin")}
+              />
+            </Button>
+          </div>
+
+          <Button
+            variant="secondary"
+            size="sm"
+            className="w-full justify-start"
+            onClick={() => setModalOpen(true)}
+          >
+            <Plus className="h-3.5 w-3.5" />
+            New Project
+          </Button>
         </div>
-        <Button
-          variant="ghost"
-          size="icon"
-          onClick={() => void loadTree()}
-          aria-label="Refresh explorer"
-        >
-          <RefreshCw className={cn("h-3.5 w-3.5", loading && "animate-spin")} />
-        </Button>
+
+        <ScrollArea className="flex-1 p-1">
+          {loading && tree.length === 0 ? (
+            <div className="flex items-center gap-2 px-3 py-4 text-xs text-muted-foreground">
+              <Loader2 className="h-3.5 w-3.5 animate-spin" />
+              Loading projects…
+            </div>
+          ) : null}
+
+          {error ? (
+            <p className="px-3 py-2 text-xs text-destructive">{error}</p>
+          ) : null}
+
+          {!loading && tree.length === 0 ? (
+            <p className="px-3 py-4 text-xs text-muted-foreground">
+              No projects yet. Click{" "}
+              <span className="text-foreground">New Project</span> to initialize
+              one.
+            </p>
+          ) : null}
+
+          {tree.map((project) => (
+            <TreeNode
+              key={project.path}
+              node={project}
+              depth={0}
+              selectedPath={selectedPath}
+              onSelectFile={onSelectFile}
+            />
+          ))}
+        </ScrollArea>
       </div>
 
-      <ScrollArea className="flex-1 p-1">
-        {loading && tree.length === 0 ? (
-          <div className="flex items-center gap-2 px-3 py-4 text-xs text-muted-foreground">
-            <Loader2 className="h-3.5 w-3.5 animate-spin" />
-            Loading projects…
-          </div>
-        ) : null}
-
-        {error ? (
-          <p className="px-3 py-2 text-xs text-destructive">{error}</p>
-        ) : null}
-
-        {!loading && tree.length === 0 ? (
-          <p className="px-3 py-4 text-xs text-muted-foreground">
-            No projects yet. Create one under{" "}
-            <code className="rounded bg-muted px-1">workspace/projects/</code>.
-          </p>
-        ) : null}
-
-        {tree.map((project) => (
-          <TreeNode
-            key={project.path}
-            node={project}
-            depth={0}
-            selectedPath={selectedPath}
-            onSelectFile={onSelectFile}
-          />
-        ))}
-      </ScrollArea>
-    </div>
+      <CreateProjectModal
+        isOpen={modalOpen}
+        onClose={() => setModalOpen(false)}
+        onCreated={handleProjectCreated}
+      />
+    </>
   );
 }

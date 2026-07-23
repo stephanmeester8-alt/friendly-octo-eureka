@@ -58,6 +58,53 @@ export interface ApprovalRequestPayload {
 // Project & file system
 // ---------------------------------------------------------------------------
 
+export type ProjectLifecycleStatus = "ACTIVE" | "ARCHIVED" | "COMPLETED";
+
+export type ProjectTemplate = "default" | "python-service" | "nextjs-app";
+
+export interface ProjectAgentConfig {
+  primaryModel: string;
+  allowedTools: string[];
+}
+
+export interface ProjectMetadata {
+  id: string;
+  name: string;
+  description: string;
+  createdAt: string;
+  updatedAt: string;
+  status: ProjectLifecycleStatus;
+  agentConfig: ProjectAgentConfig;
+}
+
+export interface ProjectSummary {
+  id: string;
+  slug: string;
+  name: string;
+  description: string;
+  status: ProjectLifecycleStatus;
+  updatedAt: string;
+}
+
+export interface CreateProjectRequest {
+  name: string;
+  description: string;
+  template?: ProjectTemplate;
+}
+
+export interface UpdateProjectRequest {
+  name?: string;
+  description?: string;
+  status?: ProjectLifecycleStatus;
+  agentConfig?: Partial<ProjectAgentConfig>;
+}
+
+export interface CreateProjectResponse {
+  success: true;
+  project: ProjectMetadata;
+  slug: string;
+}
+
 export type ProjectFileKind = "file" | "directory";
 
 export interface ProjectFile {
@@ -67,24 +114,6 @@ export interface ProjectFile {
   size?: number;
   modifiedAt?: string;
   children?: ProjectFile[];
-}
-
-export interface ProjectMetadata {
-  slug: string;
-  displayName: string;
-  status: ExecutionStatus;
-  createdAt: string;
-  updatedAt: string;
-  model?: string;
-  lastAgent?: string;
-  description?: string;
-}
-
-export interface ProjectSummary {
-  slug: string;
-  displayName: string;
-  status: ExecutionStatus;
-  updatedAt: string;
 }
 
 export interface FileTreeResponse {

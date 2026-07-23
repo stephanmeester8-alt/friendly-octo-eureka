@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 
 import { triggerProjectAgentRun } from "@/lib/gateway";
+import { touchProjectActivity } from "@/lib/projects";
 import type { TriggerAgentRequest, TriggerAgentResponse } from "@/types/cockpit";
 
 export const runtime = "nodejs";
@@ -34,6 +35,8 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
       prompt,
       agentId: body.agentName,
     });
+
+    await touchProjectActivity(projectSlug).catch(() => undefined);
 
     const response: TriggerAgentResponse = {
       taskId: result.runId,

@@ -6,13 +6,12 @@ import type {
   FileTreeResponse,
   FileWriteResponse,
   ProjectFile,
-  ProjectMetadata,
   ProjectSummary,
 } from "@/types/cockpit";
 
 import { getProjectsRoot, getWorkspaceRoot } from "./config";
+import { listProjectMetadata } from "./projects";
 
-const METADATA_FILENAME = "metadata.json";
 const IGNORED_NAMES = new Set([
   ".git",
   "node_modules",
@@ -46,27 +45,6 @@ export function resolveProjectPath(relativePath: string): string {
   }
 
   return resolved;
-}
-
-async function pathExists(target: string): Promise<boolean> {
-  try {
-    await fs.access(target);
-    return true;
-  } catch {
-    return false;
-  }
-}
-
-async function readMetadata(
-  projectDir: string,
-): Promise<ProjectMetadata | null> {
-  const metadataPath = path.join(projectDir, METADATA_FILENAME);
-  if (!(await pathExists(metadataPath))) {
-    return null;
-  }
-
-  const raw = await fs.readFile(metadataPath, "utf-8");
-  return JSON.parse(raw) as ProjectMetadata;
 }
 
 async function buildTree(
@@ -115,27 +93,7 @@ export async function ensureProjectsRoot(): Promise<void> {
 
 export async function listProjects(): Promise<ProjectSummary[]> {
   await ensureProjectsRoot();
-  const projectsRoot = getProjectsRoot();
-  const entries = await fs.readdir(projectsRoot, { withFileTypes: true });
-  const summaries: ProjectSummary[] = [];
-
-  for (const entry of entries) {
-    if (!entry.isDirectory()) continue;
-
-    const projectDir = path.join(projectsRoot, entry.name);
-    const metadata = await readMetadata(projectDir);
-
-    summaries.push({
-      slug: entry.name,
-      displayName: metadata?.displayName ?? entry.name,
-      status: metadata?.status ?? "IDLE",
-      updatedAt:
-        metadata?.updatedAt ??
-        (await fs.stat(projectDir)).mtime.toISOString(),
-    });
-  }
-
-  return summaries.sort((a, b) => b.updatedAt.localeCompare(a.updatedAt));
+  return listProjectMetadata();
 }
 
 export async function getFileTree(

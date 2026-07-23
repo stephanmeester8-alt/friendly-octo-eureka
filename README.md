@@ -67,6 +67,26 @@ python server.py
 
 Open **http://127.0.0.1:8765** in your browser.
 
+### TanStack Start Dashboard (Recommended)
+
+For the premium Softspend UI with shadcn/Radix components:
+
+```bash
+# Terminal 1 — FastAPI backend
+python server.py
+
+# Terminal 2 — TanStack Start frontend
+cd terminal
+npm install
+npm run dev
+```
+
+Open **http://127.0.0.1:3000** — the Vite dev server proxies `/api` to the FastAPI backend on port 8765.
+
+### Legacy Static Dashboard
+
+The original HTML dashboard is still served at **http://127.0.0.1:8765** when only `server.py` is running.
+
 ### Dashboard Features
 
 | Feature | Description |

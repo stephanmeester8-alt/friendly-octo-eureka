@@ -1,0 +1,37 @@
+@import "tailwindcss";
+
+@theme {
+  --font-sans: "DM Sans", ui-sans-serif, system-ui, sans-serif;
+  --font-mono: "JetBrains Mono", ui-monospace, monospace;
+}
+
+@layer utilities {
+  .glass {
+    @apply border border-zinc-800/80 bg-zinc-900/50 backdrop-blur-md;
+  }
+
+  .glass-strong {
+    @apply border border-zinc-700/60 bg-zinc-900/70 backdrop-blur-xl;
+  }
+
+  .glow-ring {
+    box-shadow:
+      0 0 0 1px rgba(99, 102, 241, 0.2),
+      0 0 48px rgba(59, 130, 246, 0.08);
+  }
+
+  .terminal-grid {
+    background-image:
+      linear-gradient(rgba(255, 255, 255, 0.02) 1px, transparent 1px),
+      linear-gradient(90deg, rgba(255, 255, 255, 0.02) 1px, transparent 1px);
+    background-size: 64px 64px;
+  }
+
+  .section-label {
+    @apply font-mono text-[11px] font-medium uppercase tracking-[0.2em] text-indigo-400/80;
+  }
+
+  .gradient-text {
+    @apply bg-gradient-to-r from-blue-400 via-indigo-400 to-violet-400 bg-clip-text text-transparent;
+  }
+}

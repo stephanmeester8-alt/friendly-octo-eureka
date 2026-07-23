@@ -8,3 +8,6 @@ output/
 *.egg-info/
 web/node_modules/
 web/dist/
+terminal/node_modules/
+terminal/.output/
+terminal/dist/

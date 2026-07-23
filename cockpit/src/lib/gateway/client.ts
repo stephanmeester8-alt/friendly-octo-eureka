@@ -23,7 +23,6 @@ import { buildToolExecutionKey } from "../hitl/approval-queue";
 import { publishProxyDenied } from "../hitl/approval-service";
 import { registerActiveSession, setExecutionStatus } from "../hitl/session-registry";
 import {
-  GATEWAY_PROTOCOL_VERSION,
   type GatewayAgentAck,
   type GatewayAgentParams,
   type GatewayConnectChallenge,
@@ -287,8 +286,8 @@ class OpenClawGatewayClient {
   private async sendConnectRequest(): Promise<void> {
     const token = getGatewayToken();
     const params: Record<string, unknown> = {
-      minProtocol: GATEWAY_PROTOCOL_VERSION,
-      maxProtocol: GATEWAY_PROTOCOL_VERSION,
+      minProtocol: GATEWAY_CONFIG.minProtocol,
+      maxProtocol: GATEWAY_CONFIG.maxProtocol,
       client: {
         id: GATEWAY_CONFIG.clientId,
         version: "0.1.0",

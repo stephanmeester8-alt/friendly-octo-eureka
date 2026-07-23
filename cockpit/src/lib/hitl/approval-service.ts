@@ -1,39 +1,35 @@
-import { getGatewayClient } from "@/lib/gateway";
-import type {
-  AgentEvent,
-  ApprovalDecision,
-  ApprovalResolveResponse,
-} from "@/types/cockpit";
+import { getGatewayClient } from "@/lib/gateway/client";
+import {
+  createProxyDeniedEvent,
+  createProxyRejectedEvent,
+  getGatewayExecutionProxy,
+} from "@/lib/gateway/proxy";
+import {
+  enqueueApproval,
+  getPendingApproval,
+} from "@/lib/hitl/approval-queue";
+import { publishExecutionStatus, publishInterceptedEvents } from "@/lib/hitl/interceptor";
+import { resolveActiveRunId } from "@/lib/hitl/session-registry";
+import type { ApprovalDecision, ApprovalResolveResponse } from "@/types/cockpit";
 
 import {
   clearResolvedApprovals,
-  getPendingApproval,
   resolveApprovalRequest,
 } from "./approval-queue";
 import {
-  publishExecutionStatus,
-  publishInterceptedEvents,
-} from "./interceptor";
+  ApprovalNotFoundError,
+  ApprovalNotPendingError,
+  ApprovalProjectMismatchError,
+  mapApprovalErrorStatus,
+} from "./approval-service.errors";
+import { createRejectedEvent } from "./approval-service.helpers";
 
-function createRejectedEvent(pending: {
-  requestId: string;
-  toolName: string;
-  projectSlug: string;
-}): AgentEvent {
-  return {
-    id: crypto.randomUUID(),
-    timestamp: new Date().toISOString(),
-    agentName: "HITL Guardrail",
-    type: "ERROR",
-    payload: {
-      code: "APPROVAL_REJECTED",
-      requestId: pending.requestId,
-      tool: pending.toolName,
-      projectSlug: pending.projectSlug,
-      message: `Approval rejected for tool "${pending.toolName}"`,
-    },
-  };
-}
+export {
+  ApprovalNotFoundError,
+  ApprovalNotPendingError,
+  ApprovalProjectMismatchError,
+  mapApprovalErrorStatus,
+} from "./approval-service.errors";
 
 export async function processApprovalResolution(input: {
   requestId: string;
@@ -59,23 +55,78 @@ export async function processApprovalResolution(input: {
     throw new ApprovalNotPendingError(input.requestId);
   }
 
-  if (pending.source === "gateway") {
-    await getGatewayClient().resolveApproval({
-      approvalId: input.requestId,
-      decision: input.decision === "APPROVE" ? "approve" : "deny",
-      kind: input.kind ?? pending.gatewayKind ?? "exec",
-    });
-  }
+  const proxy = getGatewayExecutionProxy();
+  const client = getGatewayClient();
 
   if (input.decision === "APPROVE") {
-    const events: AgentEvent[] = [];
+    const released = proxy.releaseExecution(input.requestId);
+    const gatewayExecutionId =
+      released?.executionId ??
+      released?.runId ??
+      pending.executionId ??
+      pending.runId ??
+      resolveActiveRunId({ sessionKey: pending.sessionKey });
+
+    if (gatewayExecutionId) {
+      await client.releaseToolExecution({
+        requestId: input.requestId,
+        executionId: gatewayExecutionId,
+        runId: released?.runId ?? pending.runId,
+        toolName: released?.normalizedTool ?? pending.normalizedTool,
+        sessionKey: released?.sessionKey ?? pending.sessionKey,
+      });
+    }
+
+    if (pending.source === "gateway") {
+      await client.resolveApproval({
+        approvalId: input.requestId,
+        decision: "approve",
+        kind: input.kind ?? pending.gatewayKind ?? "exec",
+      });
+    }
+
+    const events = [];
     if (resolution.releasedEvent) {
       events.push(resolution.releasedEvent);
     }
     publishInterceptedEvents(events);
     publishExecutionStatus("RUNNING");
   } else {
-    publishInterceptedEvents([createRejectedEvent(pending)]);
+    const rejected = proxy.rejectExecution(
+      input.requestId,
+      new Error("Operator rejected tool execution"),
+    );
+    const gatewayExecutionId =
+      rejected?.executionId ??
+      rejected?.runId ??
+      pending.executionId ??
+      pending.runId ??
+      resolveActiveRunId({ sessionKey: pending.sessionKey });
+
+    if (gatewayExecutionId) {
+      await client.abortToolExecution({
+        requestId: input.requestId,
+        executionId: gatewayExecutionId,
+        runId: rejected?.runId ?? pending.runId,
+        toolName: rejected?.normalizedTool ?? pending.normalizedTool,
+        sessionKey: rejected?.sessionKey ?? pending.sessionKey,
+        reason: rejected?.reason ?? "rejected",
+      });
+    }
+
+    if (pending.source === "gateway") {
+      await client.resolveApproval({
+        approvalId: input.requestId,
+        decision: "deny",
+        kind: input.kind ?? pending.gatewayKind ?? "exec",
+      });
+    }
+
+    publishInterceptedEvents([
+      rejected
+        ? createProxyRejectedEvent(rejected, "EXECUTION_REJECTED")
+        : createRejectedEvent(pending),
+    ]);
     publishExecutionStatus("FAILED");
   }
 
@@ -89,43 +140,7 @@ export async function processApprovalResolution(input: {
   };
 }
 
-export class ApprovalNotFoundError extends Error {
-  constructor(requestId: string) {
-    super(`Approval request not found: ${requestId}`);
-    this.name = "ApprovalNotFoundError";
-  }
-}
-
-export class ApprovalNotPendingError extends Error {
-  constructor(requestId: string) {
-    super(`Approval request is no longer pending: ${requestId}`);
-    this.name = "ApprovalNotPendingError";
-  }
-}
-
-export class ApprovalProjectMismatchError extends Error {
-  constructor() {
-    super("projectSlug does not match approval request");
-    this.name = "ApprovalProjectMismatchError";
-  }
-}
-
-export function mapApprovalErrorStatus(error: unknown): {
-  status: number;
-  message: string;
-} {
-  if (error instanceof ApprovalNotFoundError) {
-    return { status: 404, message: error.message };
-  }
-  if (error instanceof ApprovalNotPendingError) {
-    return { status: 409, message: error.message };
-  }
-  if (error instanceof ApprovalProjectMismatchError) {
-    return { status: 403, message: error.message };
-  }
-
-  return {
-    status: 502,
-    message: error instanceof Error ? error.message : "Failed to resolve approval",
-  };
+export function publishProxyDenied(context: Parameters<typeof createProxyDeniedEvent>[0]) {
+  publishInterceptedEvents([createProxyDeniedEvent(context)]);
+  publishExecutionStatus("FAILED");
 }

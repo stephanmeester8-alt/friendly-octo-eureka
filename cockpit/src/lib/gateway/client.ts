@@ -7,9 +7,18 @@ import type { AgentEvent } from "@/types/cockpit";
 import { getGatewayEventBus } from "./event-bus";
 import { mapGatewayFrameToAgentEvent } from "./event-mapper";
 import {
+  createProxyDeniedEvent,
+  getGatewayExecutionProxy,
+} from "./proxy";
+import { registerProxySuspension } from "./proxy-bridge";
+import {
   interceptAgentEvent,
+  publishExecutionStatus,
   publishInterceptedEvents,
 } from "../hitl/interceptor";
+import { markToolExecutionApproved } from "../hitl/approval-queue";
+import { buildToolExecutionKey } from "../hitl/approval-queue";
+import { publishProxyDenied } from "../hitl/approval-service";
 import { registerActiveSession, setExecutionStatus } from "../hitl/session-registry";
 import {
   GATEWAY_PROTOCOL_VERSION,
@@ -208,11 +217,64 @@ class OpenClawGatewayClient {
       return;
     }
 
+    void this.processGuardedEventFrame(frame);
+  }
+
+  private async processGuardedEventFrame(
+    frame: GatewayEventFrame,
+  ): Promise<void> {
+    const proxy = getGatewayExecutionProxy();
+    const evaluation = await proxy.evaluateInboundToolFrame(frame);
+
+    if (evaluation.action === "deny" && evaluation.context) {
+      publishProxyDenied(evaluation.context);
+      await this.abortToolExecution({
+        requestId: evaluation.context.requestId,
+        runId: evaluation.context.runId,
+        toolName: evaluation.context.normalizedTool,
+        sessionKey: evaluation.context.sessionKey,
+        reason: "unauthorized_tool",
+      });
+      return;
+    }
+
+    if (evaluation.action === "suspend" && evaluation.context) {
+      registerProxySuspension(evaluation.context);
+      try {
+        await proxy.suspendExecution(evaluation.context);
+      } catch (error) {
+        const message =
+          error instanceof Error ? error.message : "Execution rejected";
+        publishInterceptedEvents([
+          {
+            id: crypto.randomUUID(),
+            timestamp: new Date().toISOString(),
+            agentName: "Gateway Proxy",
+            type: "ERROR",
+            payload: {
+              code: "EXECUTION_REJECTED",
+              requestId: evaluation.context.requestId,
+              message,
+            },
+          },
+        ]);
+        publishExecutionStatus("FAILED");
+        return;
+      }
+
+      markToolExecutionApproved(
+        buildToolExecutionKey({
+          runId: evaluation.context.runId,
+          toolName: evaluation.context.normalizedTool,
+          sessionKey: evaluation.context.sessionKey,
+        }),
+      );
+    }
+
     const mapped = mapGatewayFrameToAgentEvent(frame);
     if (mapped) {
-      void interceptAgentEvent(mapped).then((events) => {
-        publishInterceptedEvents(events);
-      });
+      const events = await interceptAgentEvent(mapped);
+      publishInterceptedEvents(events);
     }
   }
 
@@ -260,6 +322,25 @@ class OpenClawGatewayClient {
 
       const id = crypto.randomUUID();
       const frame: GatewayRequestFrame = { type: "req", id, method, params };
+      const proxy = getGatewayExecutionProxy();
+      const evaluation = await proxy.evaluateOutboundRequest(frame);
+
+      if (evaluation.action === "deny" && evaluation.context) {
+        publishProxyDenied(evaluation.context);
+        throw new Error(`Proxy blocked unauthorized tool: ${evaluation.context.toolName}`);
+      }
+
+      if (evaluation.action === "suspend" && evaluation.context) {
+        registerProxySuspension(evaluation.context);
+        await proxy.suspendExecution(evaluation.context);
+        markToolExecutionApproved(
+          buildToolExecutionKey({
+            runId: evaluation.context.runId,
+            toolName: evaluation.context.normalizedTool,
+            sessionKey: evaluation.context.sessionKey,
+          }),
+        );
+      }
 
       return new Promise<GatewayResponseFrame>((resolve, reject) => {
         const timer = setTimeout(() => {
@@ -340,6 +421,43 @@ class OpenClawGatewayClient {
       kind: input.kind ?? "exec",
       decision: input.decision,
     });
+  }
+
+  async releaseToolExecution(input: {
+    requestId: string;
+    executionId?: string;
+    runId?: string;
+    toolName: string;
+    sessionKey?: string;
+  }): Promise<void> {
+    await this.ensureConnected();
+    await this.request(
+      "tool.execution.release",
+      {
+        ...input,
+        executionId: input.executionId ?? input.runId,
+      },
+      { skipEnsure: false, timeoutMs: REQUEST_TIMEOUT_MS },
+    );
+  }
+
+  async abortToolExecution(input: {
+    requestId: string;
+    executionId?: string;
+    runId?: string;
+    toolName: string;
+    sessionKey?: string;
+    reason: string;
+  }): Promise<void> {
+    await this.ensureConnected();
+    await this.request(
+      "tool.execution.abort",
+      {
+        ...input,
+        executionId: input.executionId ?? input.runId,
+      },
+      { skipEnsure: false, timeoutMs: REQUEST_TIMEOUT_MS },
+    );
   }
 }
 

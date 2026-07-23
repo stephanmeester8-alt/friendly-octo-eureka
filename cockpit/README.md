@@ -30,8 +30,8 @@ This will:
 1. Start `scripts/mock-openclaw-gateway.mjs` on `127.0.0.1:18789`
 2. Start the cockpit (`next start`)
 3. Trigger an agent run on `demo-project`
-4. Verify `APPROVAL_REQUEST` + `WAITING_APPROVAL` via SSE
-5. Approve via `POST /api/approval`
+4. Verify proxy hard-halt: no artifacts on disk until `POST /api/approval`
+5. Approve via `POST /api/approval` (releases `tool.execution.release` to the gateway)
 6. Confirm `src/cli_tool.py` and `docs/CLI_SPEC.md` appear in `/api/files`
 
 ### With a real OpenClaw gateway

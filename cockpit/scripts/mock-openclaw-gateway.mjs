@@ -1,7 +1,7 @@
 #!/usr/bin/env node
 /**
- * Minimal OpenClaw gateway mock for local E2E workflow tests.
- * Implements WS handshake, agent RPC ack, streamed tool events, and approval.resolve.
+ * Mock OpenClaw Gateway for local E2E testing.
+ * Honors tool.execution.release / tool.execution.abort from the cockpit proxy.
  */
 
 import http from "node:http";
@@ -17,6 +17,7 @@ const WORKSPACE_ROOT = path.resolve(
     path.join(path.dirname(fileURLToPath(import.meta.url)), "../../workspace"),
 );
 
+/** @type {Map<string, { socket: import("ws").WebSocket, sessionKey: string, projectSlug: string, stage: string }>} */
 const pendingRuns = new Map();
 
 function send(socket, frame) {
@@ -29,6 +30,10 @@ function agentEvent(runId, stream, data, extra = {}) {
     event: "agent",
     payload: { runId, stream, seq: Date.now(), ts: Date.now(), data, ...extra },
   };
+}
+
+function delay(ms) {
+  return new Promise((resolve) => setTimeout(resolve, ms));
 }
 
 async function writeWorkflowArtifacts(projectSlug) {
@@ -74,7 +79,12 @@ async function runScenario(socket, params, requestId) {
   const sessionKey = String(params.sessionKey ?? "");
   const projectSlug = sessionKey.replace(/^cockpit:project:/, "") || "demo-project";
 
-  pendingRuns.set(runId, { socket, sessionKey, projectSlug, stage: "started" });
+  pendingRuns.set(runId, {
+    socket,
+    sessionKey,
+    projectSlug,
+    stage: "started",
+  });
 
   send(socket, {
     type: "res",
@@ -87,10 +97,15 @@ async function runScenario(socket, params, requestId) {
 
   send(
     socket,
-    agentEvent(runId, "assistant", {
-      type: "text",
-      text: "Planning Python CLI scaffold under src/ and docs/…",
-    }, base),
+    agentEvent(
+      runId,
+      "assistant",
+      {
+        type: "text",
+        text: "Planning Python CLI scaffold under src/ and docs/…",
+      },
+      base,
+    ),
   );
 
   await delay(300);
@@ -103,6 +118,7 @@ async function runScenario(socket, params, requestId) {
       {
         name: "terminal_exec",
         phase: "start",
+        executionId: runId,
         input: { command: "python -m pytest" },
       },
       base,
@@ -113,29 +129,18 @@ async function runScenario(socket, params, requestId) {
     socket,
     sessionKey,
     projectSlug,
-    stage: "awaiting_approval",
+    stage: "awaiting_proxy_release",
   });
 }
 
-async function continueAfterApproval(runId, approved) {
+async function continueAfterRelease(runId) {
   const run = pendingRuns.get(runId);
-  if (!run || run.stage !== "awaiting_approval") {
-    return;
+  if (!run || run.stage !== "awaiting_proxy_release") {
+    return false;
   }
 
   const { socket, sessionKey, projectSlug } = run;
   const base = { runId, sessionKey };
-
-  if (!approved) {
-    send(
-      socket,
-      agentEvent(runId, "error", {
-        message: "Operator rejected terminal_exec",
-      }, base),
-    );
-    pendingRuns.delete(runId);
-    return;
-  }
 
   send(
     socket,
@@ -176,49 +181,53 @@ async function continueAfterApproval(runId, approved) {
     }, base),
   );
 
-  send(socket, {
-    type: "res",
-    id: crypto.randomUUID(),
-    ok: true,
-    payload: { runId, status: "ok", summary: "completed" },
-  });
-
   pendingRuns.delete(runId);
+  return true;
 }
 
-function delay(ms) {
-  return new Promise((resolve) => setTimeout(resolve, ms));
+async function abortRun(runId) {
+  const run = pendingRuns.get(runId);
+  if (!run) {
+    return false;
+  }
+
+  const { socket, sessionKey } = run;
+  send(
+    socket,
+    agentEvent(
+      runId,
+      "error",
+      { message: "Operator rejected terminal_exec" },
+      { runId, sessionKey },
+    ),
+  );
+  pendingRuns.delete(runId);
+  return true;
 }
 
 const server = http.createServer(async (req, res) => {
-  if (req.method === "POST" && req.url === "/mock/resume") {
-    let body = "";
-    for await (const chunk of req) {
-      body += chunk;
-    }
-    const payload = body ? JSON.parse(body) : {};
-    const runId = payload.runId;
-    const entry = runId
-      ? pendingRuns.has(runId)
-        ? [runId, pendingRuns.get(runId)]
-        : null
-      : [...pendingRuns.entries()].find(([, run]) => run.stage === "awaiting_approval");
-
-    if (!entry || !entry[1]) {
-      res.writeHead(404, { "Content-Type": "application/json" });
-      res.end(JSON.stringify({ error: "No awaiting run" }));
-      return;
-    }
-
-    const resolvedRunId = runId ?? entry[0];
-    res.writeHead(200, { "Content-Type": "application/json" });
-    res.end(JSON.stringify({ ok: true, runId: resolvedRunId }));
-    void continueAfterApproval(resolvedRunId, true);
+  if (req.method === "GET" && req.url === "/health") {
+    res.writeHead(200, { "content-type": "application/json" });
+    res.end(JSON.stringify({ ok: true, service: "mock-openclaw-gateway" }));
     return;
   }
 
-  res.writeHead(200, { "Content-Type": "text/plain" });
-  res.end("mock-openclaw-gateway\n");
+  if (req.method === "GET" && req.url === "/proxy/state") {
+    const suspended = [...pendingRuns.entries()]
+      .filter(([, run]) => run.stage === "awaiting_proxy_release")
+      .map(([runId, run]) => ({
+        executionId: runId,
+        runId,
+        projectSlug: run.projectSlug,
+        stage: run.stage,
+      }));
+    res.writeHead(200, { "content-type": "application/json" });
+    res.end(JSON.stringify({ suspended }));
+    return;
+  }
+
+  res.writeHead(404);
+  res.end("Not found");
 });
 
 const wss = new WebSocketServer({ server });
@@ -246,8 +255,11 @@ wss.on("connection", (socket) => {
         payload: {
           type: "hello-ok",
           protocol: 4,
-          server: { version: "mock-0.1.0", connId: crypto.randomUUID() },
-          features: { methods: ["agent", "approval.resolve"], events: ["agent"] },
+          server: { version: "mock-0.2.0", connId: crypto.randomUUID() },
+          features: {
+            methods: ["agent", "tool.execution.release", "tool.execution.abort"],
+            events: ["agent"],
+          },
           snapshot: {},
           policy: {
             maxPayload: 26214400,
@@ -268,23 +280,41 @@ wss.on("connection", (socket) => {
       return;
     }
 
-    if (frame.type === "req" && frame.method === "approval.resolve") {
-      const approved = frame.params?.decision === "approve";
-      const approvalId = String(frame.params?.id ?? "");
-      const runEntry = [...pendingRuns.entries()].find(([, run]) =>
-        run.stage === "awaiting_approval",
+    if (frame.type === "req" && frame.method === "tool.execution.release") {
+      const executionId = String(
+        frame.params?.executionId ?? frame.params?.runId ?? "",
       );
-
-      send(socket, {
-        type: "res",
-        id: frame.id,
-        ok: true,
-        payload: { id: approvalId, decision: frame.params?.decision },
+      const targetRunId =
+        executionId && pendingRuns.has(executionId)
+          ? executionId
+          : [...pendingRuns.entries()].find(
+              ([, run]) => run.stage === "awaiting_proxy_release",
+            )?.[0];
+      void continueAfterRelease(targetRunId ?? "").then((released) => {
+        send(socket, {
+          type: "res",
+          id: frame.id,
+          ok: released,
+          payload: { released, executionId },
+          ...(released ? {} : { error: { message: `No suspended run: ${executionId}` } }),
+        });
       });
+      return;
+    }
 
-      if (runEntry) {
-        void continueAfterApproval(runEntry[0], approved);
-      }
+    if (frame.type === "req" && frame.method === "tool.execution.abort") {
+      const executionId = String(
+        frame.params?.executionId ?? frame.params?.runId ?? "",
+      );
+      void abortRun(executionId).then((aborted) => {
+        send(socket, {
+          type: "res",
+          id: frame.id,
+          ok: aborted,
+          payload: { aborted, executionId },
+          ...(aborted ? {} : { error: { message: `No suspended run: ${executionId}` } }),
+        });
+      });
       return;
     }
 

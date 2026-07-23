@@ -7,6 +7,7 @@
  */
 
 import { spawn } from "node:child_process";
+import fs from "node:fs/promises";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
 
@@ -15,6 +16,13 @@ const COCKPIT_ROOT = path.resolve(__dirname, "..");
 const WORKSPACE_ROOT = path.resolve(COCKPIT_ROOT, "../workspace");
 const COCKPIT_URL = process.env.COCKPIT_URL ?? "http://127.0.0.1:3000";
 const GATEWAY_URL = process.env.AGENT_GATEWAY_URL ?? "http://127.0.0.1:18789";
+const CLI_ARTIFACT = path.join(
+  WORKSPACE_ROOT,
+  "projects",
+  "demo-project",
+  "src",
+  "cli_tool.py",
+);
 
 const children = [];
 
@@ -55,6 +63,22 @@ async function waitForUrl(url, timeoutMs = 30_000) {
     await delay(500);
   }
   throw new Error(`Timed out waiting for ${url}`);
+}
+
+async function waitForJson(url, timeoutMs = 30_000) {
+  const start = Date.now();
+  while (Date.now() - start < timeoutMs) {
+    try {
+      const response = await fetch(url);
+      if (response.ok) {
+        return response.json();
+      }
+    } catch {
+      // retry
+    }
+    await delay(500);
+  }
+  throw new Error(`Timed out waiting for JSON at ${url}`);
 }
 
 function delay(ms) {
@@ -99,15 +123,32 @@ async function streamSseUntil(predicate, timeoutMs = 15_000) {
   return events;
 }
 
+async function removeArtifactIfPresent() {
+  try {
+    await fs.unlink(CLI_ARTIFACT);
+  } catch {
+    // ignore missing file
+  }
+}
+
 async function main() {
-  log("1/6", "Starting mock OpenClaw gateway…");
+  await removeArtifactIfPresent();
+  try {
+    await fs.unlink(
+      path.join(WORKSPACE_ROOT, "projects", "demo-project", "docs", "CLI_SPEC.md"),
+    );
+  } catch {
+    // ignore missing file
+  }
+
+  log("1/7", "Starting mock OpenClaw gateway…");
   spawnProcess("node", ["scripts/mock-openclaw-gateway.mjs"], {
     env: { WORKSPACE_ROOT },
   });
-  await waitForUrl(GATEWAY_URL);
+  await waitForJson(`${GATEWAY_URL}/health`);
   pass(`Mock gateway reachable at ${GATEWAY_URL}`);
 
-  log("2/6", "Starting cockpit (next start)…");
+  log("2/7", "Starting cockpit (next start)…");
   spawnProcess("npm", ["run", "start"], {
     env: {
       WORKSPACE_ROOT,
@@ -118,7 +159,7 @@ async function main() {
   await waitForUrl(COCKPIT_URL);
   pass(`Cockpit reachable at ${COCKPIT_URL}`);
 
-  log("3/6", "Triggering agent run and waiting for HITL approval…");
+  log("3/7", "Triggering agent run and waiting for HITL approval…");
   const runStartedAt = Date.now();
   const ssePromise = streamSseUntil((event, collected) => {
     const fresh = collected.filter(
@@ -164,9 +205,17 @@ async function main() {
     .find(
       (event) =>
         event.type === "APPROVAL_REQUEST" &&
-        (event.payload?.runId === agentBody.taskId ||
-          event.payload?.toolName === "terminal_exec"),
-    );
+        event.payload?.proxyHeld === true &&
+        event.payload?.toolName === "terminal_exec",
+    ) ??
+    [...freshEvents]
+      .reverse()
+      .find(
+        (event) =>
+          event.type === "APPROVAL_REQUEST" &&
+          (event.payload?.runId === agentBody.taskId ||
+            event.payload?.toolName === "terminal_exec"),
+      );
   const waiting = freshEvents.some(
     (event) =>
       event.type === "EXECUTION_STATUS" &&
@@ -176,13 +225,57 @@ async function main() {
   if (hasThought) pass("SSE received THOUGHT event");
   else fail("Missing THOUGHT event in SSE stream");
 
-  if (approval) pass(`SSE received APPROVAL_REQUEST (${approval.payload.toolName})`);
-  else fail("Missing APPROVAL_REQUEST for high-risk terminal_exec");
+  if (!approval) {
+    fail("Missing APPROVAL_REQUEST for high-risk terminal_exec");
+  } else if (approval.payload?.proxyHeld) {
+    pass(
+      `SSE received proxy-held APPROVAL_REQUEST (${approval.payload.toolName})`,
+    );
+  } else {
+    fail("Expected proxy-held APPROVAL_REQUEST (proxyHeld=true)");
+  }
 
   if (waiting) pass("Execution status transitioned to WAITING_APPROVAL");
   else fail("Missing WAITING_APPROVAL execution status");
 
-  log("4/6", "Approving HITL request…");
+  log("4/7", "Verifying proxy hard-halt before approval…");
+  const proxyStateResponse = await fetch(`${GATEWAY_URL}/proxy/state`);
+  if (!proxyStateResponse.ok) {
+    const body = await proxyStateResponse.text();
+    fail(`GET /proxy/state failed: ${proxyStateResponse.status} (${body})`);
+  } else {
+    const proxyState = await proxyStateResponse.json();
+    if (proxyState.suspended?.length > 0) {
+      pass("Mock gateway reports suspended execution while awaiting approval");
+    } else {
+      fail("Expected suspended execution in mock gateway proxy state");
+    }
+  }
+
+  let artifactExistsBeforeApproval = false;
+  try {
+    await fs.access(CLI_ARTIFACT);
+    artifactExistsBeforeApproval = true;
+  } catch {
+    artifactExistsBeforeApproval = false;
+  }
+
+  if (!artifactExistsBeforeApproval) {
+    pass("Artifact file absent while execution is proxy-held");
+  } else {
+    fail("cli_tool.py was created before operator approval");
+  }
+
+  const preApprovalFileWrite = freshEvents.some(
+    (event) => event.type === "FILE_WRITE",
+  );
+  if (!preApprovalFileWrite) {
+    pass("No FILE_WRITE events emitted before approval");
+  } else {
+    fail("FILE_WRITE leaked before approval — proxy did not hard-halt");
+  }
+
+  log("5/7", "Approving HITL request via /api/approval…");
   if (!approval) {
     fail("Cannot approve — no pending approval request");
     return;
@@ -209,18 +302,7 @@ async function main() {
   const approveBody = await approveResponse.json();
   pass(`Approval resolved with status ${approveBody.executionStatus}`);
 
-  const resumeResponse = await fetch(`${GATEWAY_URL}/mock/resume`, {
-    method: "POST",
-    headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({ runId: agentBody.taskId }),
-  });
-  if (resumeResponse.ok) {
-    pass("Mock gateway resumed file generation after HITL approval");
-  } else {
-    fail(`Mock gateway resume failed: ${resumeResponse.status}`);
-  }
-
-  log("5/6", "Waiting for file artifacts and explorer API…");
+  log("6/7", "Waiting for file artifacts and explorer API…");
   await delay(1500);
 
   const filesResponse = await fetch(`${COCKPIT_URL}/api/files`);
@@ -253,7 +335,7 @@ async function main() {
     fail("Failed to read cli_tool.py via /api/files");
   }
 
-  log("6/6", "Collecting post-approval SSE events…");
+  log("7/7", "Collecting post-approval SSE events…");
   const tailEvents = await streamSseUntil(
     (event) =>
       event.type === "FILE_WRITE" &&
@@ -282,7 +364,7 @@ async function main() {
 
   if (process.exitCode === 0 || process.exitCode === undefined) {
     process.exitCode = 0;
-    console.log("\n[e2e] PASS — full workflow validated");
+    console.log("\n[e2e] PASS — full workflow validated (proxy hard-halt confirmed)");
   } else {
     console.log("\n[e2e] FAIL — see errors above");
   }

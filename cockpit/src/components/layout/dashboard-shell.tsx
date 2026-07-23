@@ -1,13 +1,14 @@
 "use client";
 
 import * as React from "react";
-import { Activity, Cpu, FolderKanban, Settings2 } from "lucide-react";
+import { Activity, Cpu, FolderKanban, Plug, Settings2 } from "lucide-react";
 
 import { AgentMonitor } from "@/components/agent/agent-monitor";
 import { HitlBanner } from "@/components/agent/hitl-banner";
 import { CodeViewer } from "@/components/editor/code-viewer";
 import { PromptInput } from "@/components/editor/prompt-input";
 import { ProjectExplorer } from "@/components/explorer/project-explorer";
+import { McpToolingManager } from "@/components/projects/mcp-tooling-manager";
 import { ProjectSettingsPanel } from "@/components/projects/project-settings-panel";
 import { StatusBadge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -23,6 +24,7 @@ export function DashboardShell(): React.JSX.Element {
     React.useState<ExecutionStatus>("IDLE");
   const [explorerRefreshKey, setExplorerRefreshKey] = React.useState(0);
   const [settingsOpen, setSettingsOpen] = React.useState(false);
+  const [mcpManagerOpen, setMcpManagerOpen] = React.useState(false);
 
   const projectSlug = selectedPath?.split("/")[0];
 
@@ -74,16 +76,28 @@ export function DashboardShell(): React.JSX.Element {
 
         <div className="flex items-center gap-4 text-xs text-muted-foreground">
           {projectSlug ? (
-            <Button
-              type="button"
-              variant="ghost"
-              size="sm"
-              className="h-7 gap-1.5 px-2 text-xs text-muted-foreground"
-              onClick={() => setSettingsOpen(true)}
-            >
-              <Settings2 className="h-3.5 w-3.5" />
-              Agent settings
-            </Button>
+            <>
+              <Button
+                type="button"
+                variant="ghost"
+                size="sm"
+                className="h-7 gap-1.5 px-2 text-xs text-muted-foreground"
+                onClick={() => setMcpManagerOpen(true)}
+              >
+                <Plug className="h-3.5 w-3.5" />
+                MCP tools
+              </Button>
+              <Button
+                type="button"
+                variant="ghost"
+                size="sm"
+                className="h-7 gap-1.5 px-2 text-xs text-muted-foreground"
+                onClick={() => setSettingsOpen(true)}
+              >
+                <Settings2 className="h-3.5 w-3.5" />
+                Agent settings
+              </Button>
+            </>
           ) : null}
           <span className="flex items-center gap-1.5">
             <FolderKanban className="h-3.5 w-3.5" />
@@ -130,6 +144,12 @@ export function DashboardShell(): React.JSX.Element {
         projectSlug={projectSlug}
         isOpen={settingsOpen}
         onClose={() => setSettingsOpen(false)}
+      />
+
+      <McpToolingManager
+        projectSlug={projectSlug}
+        isOpen={mcpManagerOpen}
+        onClose={() => setMcpManagerOpen(false)}
       />
     </div>
   );

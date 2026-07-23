@@ -25,6 +25,14 @@ The prompt bar supports task type selection and optional auto-detection from the
 npm run test:model-routing
 ```
 
+## MCP Skill Registry
+
+Enable or disable MCP server packs per project via the **MCP tools** button in the header. Enabled servers extend the effective tool allowlist used by the gateway proxy and HITL guardrails.
+
+```bash
+npm run test:mcp-registry
+```
+
 ## End-to-end workflow test (Option B)
 
 Validates the full loop without a real OpenClaw install:

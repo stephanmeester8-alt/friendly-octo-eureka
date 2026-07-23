@@ -99,6 +99,28 @@ export interface ProjectAgentConfig {
   modelByTaskType?: Partial<Record<AgentTaskType, string>>;
 }
 
+export interface ProjectMcpConfig {
+  enabledServers: string[];
+}
+
+export interface McpToolDefinition {
+  id: string;
+  name: string;
+  description: string;
+  normalizedTool: string;
+  riskLevel: ToolRiskLevel;
+}
+
+export interface McpServerDefinition {
+  id: string;
+  name: string;
+  description: string;
+  transport: "stdio" | "sse" | "http";
+  packageName?: string;
+  tools: McpToolDefinition[];
+  enabledByDefault?: boolean;
+}
+
 export interface ProjectMetadata {
   id: string;
   name: string;
@@ -107,6 +129,7 @@ export interface ProjectMetadata {
   updatedAt: string;
   status: ProjectLifecycleStatus;
   agentConfig: ProjectAgentConfig;
+  mcpConfig?: ProjectMcpConfig;
 }
 
 export interface ProjectSummary {
@@ -129,6 +152,7 @@ export interface UpdateProjectRequest {
   description?: string;
   status?: ProjectLifecycleStatus;
   agentConfig?: Partial<ProjectAgentConfig>;
+  mcpConfig?: Partial<ProjectMcpConfig>;
 }
 
 export interface CreateProjectResponse {

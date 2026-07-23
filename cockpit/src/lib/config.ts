@@ -26,6 +26,36 @@ export function getGatewayWebSocketUrl(): string {
   return url.toString();
 }
 
+function readPositiveInt(value: string | undefined, fallback: number): number {
+  const trimmed = value?.trim();
+  if (!trimmed) {
+    return fallback;
+  }
+  const parsed = Number(trimmed);
+  return Number.isFinite(parsed) && parsed > 0 ? parsed : fallback;
+}
+
+function getGatewayProtocolRange(): { minProtocol: number; maxProtocol: number } {
+  const configured = readPositiveInt(process.env.AGENT_GATEWAY_PROTOCOL_VERSION, 0);
+  if (configured > 0) {
+    return { minProtocol: configured, maxProtocol: configured };
+  }
+
+  const minProtocol = readPositiveInt(
+    process.env.AGENT_GATEWAY_MIN_PROTOCOL_VERSION,
+    4,
+  );
+  const maxProtocol = readPositiveInt(
+    process.env.AGENT_GATEWAY_MAX_PROTOCOL_VERSION,
+    5,
+  );
+
+  return {
+    minProtocol: Math.min(minProtocol, maxProtocol),
+    maxProtocol: Math.max(minProtocol, maxProtocol),
+  };
+}
+
 export const GATEWAY_CONFIG = {
   baseUrl: process.env.AGENT_GATEWAY_URL ?? "http://127.0.0.1:18789",
   timeoutMs: Number(process.env.AGENT_GATEWAY_TIMEOUT_MS ?? 30_000),
@@ -37,4 +67,5 @@ export const GATEWAY_CONFIG = {
     process.env.AGENT_GATEWAY_CLIENT_MODE?.trim() ||
     process.env.OPENCLAW_CLIENT_MODE?.trim() ||
     "backend",
+  ...getGatewayProtocolRange(),
 } as const;

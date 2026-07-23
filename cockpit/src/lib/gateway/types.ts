@@ -1,4 +1,5 @@
-export const GATEWAY_PROTOCOL_VERSION = 4;
+/** Default max protocol for mock gateways and local tests. */
+export const GATEWAY_PROTOCOL_VERSION = 5;
 
 export type GatewayFrameType = "req" | "res" | "event";
 

@@ -233,6 +233,8 @@ const server = http.createServer(async (req, res) => {
 
 const wss = new WebSocketServer({ server });
 
+const MOCK_GATEWAY_PROTOCOL = Number(process.env.MOCK_GATEWAY_PROTOCOL ?? 5);
+
 wss.on("connection", (socket) => {
   send(socket, {
     type: "event",
@@ -249,13 +251,28 @@ wss.on("connection", (socket) => {
     }
 
     if (frame.type === "req" && frame.method === "connect") {
+      const clientMin = Number(frame.params?.minProtocol ?? 4);
+      const clientMax = Number(frame.params?.maxProtocol ?? clientMin);
+      const negotiated =
+        clientMin <= MOCK_GATEWAY_PROTOCOL && MOCK_GATEWAY_PROTOCOL <= clientMax;
+
+      if (!negotiated) {
+        send(socket, {
+          type: "res",
+          id: frame.id,
+          ok: false,
+          error: { message: "protocol mismatch" },
+        });
+        return;
+      }
+
       send(socket, {
         type: "res",
         id: frame.id,
         ok: true,
         payload: {
           type: "hello-ok",
-          protocol: 4,
+          protocol: MOCK_GATEWAY_PROTOCOL,
           server: { version: "mock-0.2.0", connId: crypto.randomUUID() },
           features: {
             methods: ["agent", "tool.execution.release", "tool.execution.abort"],

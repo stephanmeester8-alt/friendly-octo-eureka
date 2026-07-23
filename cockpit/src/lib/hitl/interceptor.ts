@@ -1,3 +1,4 @@
+import { resolveEffectiveAllowedTools } from "@/lib/mcp";
 import { getGatewayEventBus } from "@/lib/gateway/event-bus";
 import { readProjectMetadata } from "@/lib/projects";
 import type { AgentEvent, ExecutionStatus } from "@/types/cockpit";
@@ -130,7 +131,7 @@ async function interceptToolEvent(event: AgentEvent): Promise<AgentEvent[]> {
   let allowedTools: string[] = [];
   try {
     const metadata = await readProjectMetadata(projectSlug);
-    allowedTools = metadata.agentConfig.allowedTools;
+    allowedTools = resolveEffectiveAllowedTools(metadata);
   } catch {
     return [event];
   }

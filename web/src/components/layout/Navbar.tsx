@@ -1,11 +1,14 @@
 import { Link, useNavigate } from 'react-router-dom'
 import { Shield } from 'lucide-react'
 import { Button } from '../ui/Button'
+import { LanguageSwitcher } from '../ui/LanguageSwitcher'
 import { useAuthStore } from '../../store/useAuthStore'
+import { useTranslation } from '../../store/useLocaleStore'
 
 export function Navbar() {
   const { user } = useAuthStore()
   const navigate = useNavigate()
+  const { t } = useTranslation()
 
   return (
     <header className="sticky top-0 z-40 border-b border-slate-800/80 bg-slate-950/80 backdrop-blur-xl">
@@ -22,33 +25,34 @@ export function Navbar() {
 
         <nav className="hidden items-center gap-8 md:flex">
           <a href="#features" className="text-sm text-slate-400 transition hover:text-white">
-            Features
+            {t.nav.features}
           </a>
           <a href="#pricing" className="text-sm text-slate-400 transition hover:text-white">
-            Pricing
+            {t.nav.pricing}
           </a>
           <a href="#security" className="text-sm text-slate-400 transition hover:text-white">
-            Security
+            {t.nav.security}
           </a>
         </nav>
 
         <div className="flex items-center gap-3">
+          <LanguageSwitcher className="hidden sm:flex" />
           {user ? (
             <>
               <Button variant="ghost" size="sm" onClick={() => navigate('/dashboard')}>
-                Dashboard
+                {t.nav.dashboard}
               </Button>
               <Button size="sm" onClick={() => navigate('/dashboard')}>
-                Open Workspace
+                {t.nav.openWorkspace}
               </Button>
             </>
           ) : (
             <>
               <Button variant="ghost" size="sm" onClick={() => navigate('/login')}>
-                Log in
+                {t.nav.login}
               </Button>
               <Button size="sm" onClick={() => navigate('/signup')}>
-                Start Free Trial
+                {t.nav.startTrial}
               </Button>
             </>
           )}

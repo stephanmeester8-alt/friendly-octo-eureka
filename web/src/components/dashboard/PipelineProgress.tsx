@@ -2,6 +2,7 @@ import { CheckCircle, Circle, Loader2 } from 'lucide-react'
 import clsx from 'clsx'
 import type { PipelineStage } from '../../lib/types'
 import { PIPELINE_STAGE_LABELS } from '../../lib/pipeline-simulator'
+import { useTranslation } from '../../store/useLocaleStore'
 
 interface PipelineProgressProps {
   stage: PipelineStage
@@ -17,14 +18,22 @@ function stageIndex(stage: PipelineStage): number {
 }
 
 export function PipelineProgress({ stage, elapsedSeconds }: PipelineProgressProps) {
+  const { t } = useTranslation()
   const current = stageIndex(stage)
+
+  const stageLabels: Record<string, string> = {
+    antigravity: t.pipeline.stages.antigravity,
+    routing: t.pipeline.stages.routing,
+    hitl: t.pipeline.stages.hitl,
+    deliverables: t.pipeline.stages.deliverables,
+  }
 
   return (
     <div className="space-y-4">
       <div className="flex items-center justify-between">
-        <h3 className="text-sm font-semibold text-slate-300">Pipeline Progress</h3>
+        <h3 className="text-sm font-semibold text-slate-300">{t.pipeline.progress}</h3>
         <span className="font-mono text-sm text-cyan-400">
-          {elapsedSeconds.toFixed(1)}s elapsed
+          {elapsedSeconds.toFixed(1)}s {t.pipeline.elapsed}
         </span>
       </div>
 
@@ -53,13 +62,13 @@ export function PipelineProgress({ stage, elapsedSeconds }: PipelineProgressProp
               )}
               <div className="flex-1">
                 <p className="text-sm font-medium text-white">
-                  [{s.step}/4] {s.label}
+                  [{s.step}/4] {stageLabels[s.key]}
                 </p>
                 {active && s.durationMs > 0 && (
-                  <p className="text-xs text-slate-400">Processing…</p>
+                  <p className="text-xs text-slate-400">{t.pipeline.processing}</p>
                 )}
               </div>
-              <span className="text-xs text-slate-500">Step {s.step}</span>
+              <span className="text-xs text-slate-500">{t.pipeline.step} {s.step}</span>
             </div>
           )
         })}

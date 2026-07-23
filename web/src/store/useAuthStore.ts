@@ -15,8 +15,8 @@ interface AuthState {
   loading: boolean
   initialized: boolean
   init: () => Promise<void>
-  signUp: (email: string, password: string) => Promise<{ error?: string }>
-  signIn: (email: string, password: string) => Promise<{ error?: string }>
+  signUp: (email: string, password: string) => Promise<{ error?: 'emailRequired' | 'passwordMin' | 'unknown' }>
+  signIn: (email: string, password: string) => Promise<{ error?: 'emailRequired' | 'unknown' }>
   signOut: () => Promise<void>
   updateApiKey: (key: string) => void
   getApiKey: () => string
@@ -61,18 +61,18 @@ export const useAuthStore = create<AuthState>((set, get) => ({
     set({ loading: true })
     if (!email || !password) {
       set({ loading: false })
-      return { error: 'Email and password are required.' }
+      return { error: 'emailRequired' }
     }
     if (password.length < 6) {
       set({ loading: false })
-      return { error: 'Password must be at least 6 characters.' }
+      return { error: 'passwordMin' }
     }
 
     if (isSupabaseConfigured && supabase) {
       const { data, error } = await supabase.auth.signUp({ email, password })
       if (error) {
         set({ loading: false })
-        return { error: error.message }
+        return { error: 'unknown' }
       }
       const user = createDefaultUser(email, data.user?.id)
       saveUser(user)
@@ -90,14 +90,14 @@ export const useAuthStore = create<AuthState>((set, get) => ({
     set({ loading: true })
     if (!email || !password) {
       set({ loading: false })
-      return { error: 'Email and password are required.' }
+      return { error: 'emailRequired' }
     }
 
     if (isSupabaseConfigured && supabase) {
       const { data, error } = await supabase.auth.signInWithPassword({ email, password })
       if (error) {
         set({ loading: false })
-        return { error: error.message }
+        return { error: 'unknown' }
       }
       const stored = loadUser()
       const user =

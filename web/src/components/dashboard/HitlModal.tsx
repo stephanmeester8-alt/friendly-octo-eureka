@@ -2,6 +2,7 @@ import { AlertTriangle, Check, X } from 'lucide-react'
 import type { ProposedFile } from '../../lib/types'
 import { Button } from '../ui/Button'
 import { Modal } from '../ui/Modal'
+import { useTranslation } from '../../store/useLocaleStore'
 
 interface HitlModalProps {
   open: boolean
@@ -17,21 +18,20 @@ function formatSize(bytes: number): string {
 }
 
 export function HitlModal({ open, files, summary, onApprove, onDeny }: HitlModalProps) {
+  const { t } = useTranslation()
+
   return (
-    <Modal open={open} onClose={onDeny} title="HITL Security Gate — Approve File Writes" size="xl">
+    <Modal open={open} onClose={onDeny} title={t.hitl.title} size="xl">
       <div className="mb-4 flex items-start gap-3 rounded-lg border border-amber-500/30 bg-amber-500/10 p-4">
         <AlertTriangle className="mt-0.5 h-5 w-5 shrink-0 text-amber-400" />
         <div>
-          <p className="text-sm font-medium text-amber-200">Human approval required</p>
-          <p className="mt-1 text-xs text-amber-200/70">
-            The AI has proposed the following files for local persistence. No files will be
-            written until you explicitly approve.
-          </p>
+          <p className="text-sm font-medium text-amber-200">{t.hitl.warningTitle}</p>
+          <p className="mt-1 text-xs text-amber-200/70">{t.hitl.warningBody}</p>
         </div>
       </div>
 
       <div className="mb-4 max-h-32 overflow-y-auto rounded-lg bg-slate-900/60 p-4">
-        <p className="text-xs font-medium uppercase tracking-wider text-slate-500">Summary</p>
+        <p className="text-xs font-medium uppercase tracking-wider text-slate-500">{t.hitl.summary}</p>
         <p className="mt-2 whitespace-pre-wrap text-sm text-slate-300 line-clamp-4">
           {summary.slice(0, 500)}…
         </p>
@@ -41,9 +41,9 @@ export function HitlModal({ open, files, summary, onApprove, onDeny }: HitlModal
         <table className="w-full text-left text-sm">
           <thead className="bg-slate-800/80 text-xs uppercase text-slate-400">
             <tr>
-              <th className="px-4 py-3">Filename</th>
-              <th className="px-4 py-3">Description</th>
-              <th className="px-4 py-3 text-right">Size</th>
+              <th className="px-4 py-3">{t.hitl.filename}</th>
+              <th className="px-4 py-3">{t.hitl.description}</th>
+              <th className="px-4 py-3 text-right">{t.hitl.size}</th>
             </tr>
           </thead>
           <tbody className="divide-y divide-slate-700/50">
@@ -63,11 +63,11 @@ export function HitlModal({ open, files, summary, onApprove, onDeny }: HitlModal
       <div className="mt-6 flex justify-end gap-3">
         <Button variant="danger" onClick={onDeny}>
           <X className="h-4 w-4" />
-          Deny [N]
+          {t.hitl.deny}
         </Button>
         <Button onClick={onApprove}>
           <Check className="h-4 w-4" />
-          Approve Write [Y]
+          {t.hitl.approve}
         </Button>
       </div>
     </Modal>

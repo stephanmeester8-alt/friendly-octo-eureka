@@ -2,6 +2,7 @@ import { Download, FileText } from 'lucide-react'
 import type { PipelineResult } from '../../lib/types'
 import { Card } from '../ui/Card'
 import { Button } from '../ui/Button'
+import { useTranslation } from '../../store/useLocaleStore'
 
 interface DeliverablesViewProps {
   result: PipelineResult
@@ -23,6 +24,7 @@ function formatSize(bytes: number): string {
 }
 
 export function DeliverablesView({ result }: DeliverablesViewProps) {
+  const { t } = useTranslation()
   const indexFile = result.artifacts.find((a) => a.filename === 'INDEX.md')
 
   return (
@@ -31,9 +33,9 @@ export function DeliverablesView({ result }: DeliverablesViewProps) {
         <div className="flex items-center gap-3">
           <FileText className="h-6 w-6 text-cyan-400" />
           <div>
-            <h3 className="text-lg font-semibold text-white">Safe Deliverables</h3>
+            <h3 className="text-lg font-semibold text-white">{t.deliverables.title}</h3>
             <p className="text-sm text-slate-400">
-              {result.artifacts.length} artifacts generated in {result.elapsedSeconds.toFixed(1)}s
+              {result.artifacts.length} {t.deliverables.generated} {result.elapsedSeconds.toFixed(1)}s
             </p>
           </div>
         </div>
@@ -42,7 +44,7 @@ export function DeliverablesView({ result }: DeliverablesViewProps) {
       {indexFile && (
         <Card>
           <h4 className="mb-3 text-sm font-semibold uppercase tracking-wider text-slate-400">
-            INDEX.md
+            {t.deliverables.index}
           </h4>
           <pre className="max-h-48 overflow-auto rounded-lg bg-slate-900/80 p-4 font-mono text-xs text-slate-300">
             {indexFile.content}
@@ -54,14 +56,14 @@ export function DeliverablesView({ result }: DeliverablesViewProps) {
             onClick={() => downloadFile('INDEX.md', indexFile.content)}
           >
             <Download className="h-4 w-4" />
-            Download INDEX.md
+            {t.deliverables.downloadIndex}
           </Button>
         </Card>
       )}
 
       <Card>
         <h4 className="mb-4 text-sm font-semibold uppercase tracking-wider text-slate-400">
-          Numbered Artifacts
+          {t.deliverables.numbered}
         </h4>
         <div className="space-y-2">
           {result.artifacts
@@ -91,7 +93,7 @@ export function DeliverablesView({ result }: DeliverablesViewProps) {
 
       <Card>
         <h4 className="mb-3 text-sm font-semibold uppercase tracking-wider text-slate-400">
-          run_manifest.json
+          {t.deliverables.manifest}
         </h4>
         <pre className="max-h-40 overflow-auto rounded-lg bg-slate-900/80 p-4 font-mono text-xs text-emerald-300/90">
           {JSON.stringify(result.manifest, null, 2)}
@@ -105,7 +107,7 @@ export function DeliverablesView({ result }: DeliverablesViewProps) {
           }
         >
           <Download className="h-4 w-4" />
-          Download Manifest
+          {t.deliverables.downloadManifest}
         </Button>
       </Card>
     </div>

@@ -175,7 +175,7 @@ export function ProjectExplorer({
 
   return (
     <>
-      <div className="flex h-full flex-col border-r border-border bg-card">
+      <div className="flex h-full min-h-0 flex-col overflow-hidden border-r border-border bg-card">
         <div className="border-b border-border px-3 py-2">
           <div className="mb-2 flex items-center justify-between">
             <div>
@@ -209,7 +209,7 @@ export function ProjectExplorer({
           </Button>
         </div>
 
-        <ScrollArea className="flex-1 p-1">
+        <ScrollArea className="min-h-0 flex-1 p-1">
           {loading && tree.length === 0 ? (
             <div className="flex items-center gap-2 px-3 py-4 text-xs text-muted-foreground">
               <Loader2 className="h-3.5 w-3.5 animate-spin" />

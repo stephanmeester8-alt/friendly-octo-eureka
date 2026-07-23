@@ -118,8 +118,8 @@ function CodeViewerInner({ filePath }: { filePath: string }): React.JSX.Element 
   };
 
   return (
-    <div className="flex h-full flex-col bg-background">
-      <div className="flex items-center justify-between border-b border-border px-3 py-2">
+    <div className="flex h-full min-h-0 flex-col overflow-hidden bg-background">
+      <div className="flex shrink-0 items-center justify-between border-b border-border px-3 py-2">
         <div className="min-w-0">
           <p className="truncate font-mono text-xs text-foreground">
             {filePath ?? "No file selected"}
@@ -148,7 +148,7 @@ function CodeViewerInner({ filePath }: { filePath: string }): React.JSX.Element 
         </div>
       </div>
 
-      <div className={cn("relative flex-1", loading && "opacity-60")}>
+      <div className={cn("relative min-h-0 flex-1 overflow-hidden", loading && "opacity-60")}>
         <MonacoEditor
           height="100%"
           language={languageFromPath(filePath)}
@@ -178,13 +178,13 @@ function CodeViewerInner({ filePath }: { filePath: string }): React.JSX.Element 
 export function CodeViewer({ filePath }: CodeViewerProps): React.JSX.Element {
   if (!filePath) {
     return (
-      <div className="flex h-full flex-col bg-background">
-        <div className="flex items-center justify-between border-b border-border px-3 py-2">
+      <div className="flex h-full min-h-0 flex-col overflow-hidden bg-background">
+        <div className="flex shrink-0 items-center justify-between border-b border-border px-3 py-2">
           <p className="truncate font-mono text-xs text-foreground">
             No file selected
           </p>
         </div>
-        <div className="flex flex-1 items-center justify-center text-sm text-muted-foreground">
+        <div className="flex min-h-0 flex-1 items-center justify-center overflow-hidden text-sm text-muted-foreground">
           Select a file from the explorer to preview or edit.
         </div>
       </div>

@@ -92,7 +92,7 @@ export function PromptInput({
   return (
     <form
       onSubmit={(event) => void handleSubmit(event)}
-      className="border-t border-border bg-card p-3"
+      className="shrink-0 border-t border-border bg-background p-4"
     >
       <div className="mb-2 flex items-center justify-between gap-2">
         <p className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">

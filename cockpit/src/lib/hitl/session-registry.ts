@@ -61,6 +61,21 @@ export function resolveProjectSlug(input: {
   return undefined;
 }
 
+export function resolveActiveRunId(input: {
+  sessionKey?: string;
+  runId?: string;
+}): string | undefined {
+  if (input.runId) {
+    return input.runId;
+  }
+
+  if (!input.sessionKey) {
+    return undefined;
+  }
+
+  return getRegistry().get(input.sessionKey)?.runId;
+}
+
 export function getExecutionStatus(): ExecutionStatus {
   return globalThis.__cockpitExecutionStatus ?? "IDLE";
 }

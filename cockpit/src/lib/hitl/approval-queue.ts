@@ -17,12 +17,14 @@ export interface PendingApproval {
   status: PendingApprovalStatus;
   description: string;
   runId?: string;
+  executionId?: string;
   sessionKey?: string;
   toolInput?: unknown;
   createdAt: string;
   source: ApprovalSource;
   gatewayKind?: string;
   heldEvent?: AgentEvent;
+  proxyHeld?: boolean;
 }
 
 export interface ApprovalResolution {

@@ -215,7 +215,11 @@ class OpenClawGatewayClient {
         nonce: String(payload.nonce ?? ""),
         ts: Number(payload.ts ?? Date.now()),
       };
-      void this.sendConnectRequest();
+      void this.sendConnectRequest().catch((error) => {
+        const message =
+          error instanceof Error ? error.message : "Gateway connect failed";
+        publishSystemEvent(message, "ERROR");
+      });
       return;
     }
 
@@ -286,10 +290,10 @@ class OpenClawGatewayClient {
       minProtocol: GATEWAY_PROTOCOL_VERSION,
       maxProtocol: GATEWAY_PROTOCOL_VERSION,
       client: {
-        id: "cockpit",
+        id: GATEWAY_CONFIG.clientId,
         version: "0.1.0",
         platform: process.platform,
-        mode: "backend",
+        mode: GATEWAY_CONFIG.clientMode,
       },
       role: "operator",
       scopes: [

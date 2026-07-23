@@ -78,6 +78,7 @@ async function runScenario(socket, params, requestId) {
   const runId = crypto.randomUUID();
   const sessionKey = String(params.sessionKey ?? "");
   const projectSlug = sessionKey.replace(/^cockpit:project:/, "") || "demo-project";
+  const model = String(params.model ?? "default");
 
   pendingRuns.set(runId, {
     socket,
@@ -90,7 +91,7 @@ async function runScenario(socket, params, requestId) {
     type: "res",
     id: requestId,
     ok: true,
-    payload: { runId, status: "accepted" },
+    payload: { runId, status: "accepted", model },
   });
 
   const base = { runId, sessionKey };
@@ -102,7 +103,7 @@ async function runScenario(socket, params, requestId) {
       "assistant",
       {
         type: "text",
-        text: "Planning Python CLI scaffold under src/ and docs/…",
+        text: `Planning Python CLI scaffold under src/ and docs/ (model: ${model})…`,
       },
       base,
     ),

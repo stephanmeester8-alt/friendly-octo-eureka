@@ -39,6 +39,7 @@ export interface GatewayAgentParams {
   idempotencyKey: string;
   sessionKey?: string;
   agentId?: string;
+  model?: string;
   cwd?: string;
   extraSystemPrompt?: string;
   timeout?: number;

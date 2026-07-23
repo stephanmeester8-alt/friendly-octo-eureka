@@ -1,16 +1,30 @@
 "use client";
 
 import * as React from "react";
-import { Loader2, Send } from "lucide-react";
+import { Loader2, Send, Sparkles } from "lucide-react";
 
 import { Button } from "@/components/ui/button";
+import type { AgentTaskType } from "@/types/cockpit";
 
 interface PromptInputProps {
   projectSlug?: string;
   disabled?: boolean;
-  onSubmitted?: (input: { projectSlug: string; prompt: string }) => void;
+  onSubmitted?: (input: {
+    projectSlug: string;
+    prompt: string;
+    model?: string;
+    taskType?: AgentTaskType;
+  }) => void;
   onError?: (message: string) => void;
 }
+
+const TASK_TYPE_OPTIONS: Array<{ id: AgentTaskType; label: string }> = [
+  { id: "default", label: "Auto" },
+  { id: "architecture", label: "Architecture" },
+  { id: "code", label: "Code" },
+  { id: "review", label: "Review" },
+  { id: "docs", label: "Docs" },
+];
 
 export function PromptInput({
   projectSlug,
@@ -19,6 +33,8 @@ export function PromptInput({
   onError,
 }: PromptInputProps): React.JSX.Element {
   const [prompt, setPrompt] = React.useState("");
+  const [taskType, setTaskType] = React.useState<AgentTaskType>("default");
+  const [autoDetectTaskType, setAutoDetectTaskType] = React.useState(true);
   const [submitting, setSubmitting] = React.useState(false);
   const [statusMessage, setStatusMessage] = React.useState<string | null>(null);
 
@@ -37,12 +53,16 @@ export function PromptInput({
         body: JSON.stringify({
           projectSlug,
           prompt: trimmed,
+          taskType: taskType === "default" ? undefined : taskType,
+          autoDetectTaskType,
         }),
       });
 
       const body = (await response.json()) as {
         error?: string;
         taskId?: string;
+        model?: string;
+        taskType?: AgentTaskType;
       };
 
       if (!response.ok) {
@@ -50,8 +70,15 @@ export function PromptInput({
       }
 
       setPrompt("");
-      setStatusMessage(`Run ${body.taskId ?? "started"}`);
-      onSubmitted?.({ projectSlug, prompt: trimmed });
+      const modelLabel = body.model ? ` • ${body.model.split("/").pop()}` : "";
+      const taskLabel = body.taskType ? ` • ${body.taskType}` : "";
+      setStatusMessage(`Run ${body.taskId ?? "started"}${taskLabel}${modelLabel}`);
+      onSubmitted?.({
+        projectSlug,
+        prompt: trimmed,
+        model: body.model,
+        taskType: body.taskType,
+      });
     } catch (error) {
       const message =
         error instanceof Error ? error.message : "Failed to start agent run";
@@ -73,7 +100,7 @@ export function PromptInput({
         </p>
         <div className="flex items-center gap-2">
           {statusMessage ? (
-            <span className="max-w-[220px] truncate text-[10px] text-muted-foreground">
+            <span className="max-w-[260px] truncate text-[10px] text-muted-foreground">
               {statusMessage}
             </span>
           ) : null}
@@ -87,6 +114,38 @@ export function PromptInput({
             </span>
           )}
         </div>
+      </div>
+
+      <div className="mb-2 flex flex-wrap items-center gap-2">
+        <label className="flex items-center gap-1.5 text-[10px] text-muted-foreground">
+          <Sparkles className="h-3 w-3" />
+          Task
+          <select
+            value={taskType}
+            onChange={(event) =>
+              setTaskType(event.target.value as AgentTaskType)
+            }
+            disabled={disabled || !projectSlug || submitting}
+            className="rounded border border-border bg-background px-2 py-1 text-[10px] text-foreground"
+          >
+            {TASK_TYPE_OPTIONS.map((option) => (
+              <option key={option.id} value={option.id}>
+                {option.label}
+              </option>
+            ))}
+          </select>
+        </label>
+
+        <label className="flex items-center gap-1.5 text-[10px] text-muted-foreground">
+          <input
+            type="checkbox"
+            checked={autoDetectTaskType}
+            onChange={(event) => setAutoDetectTaskType(event.target.checked)}
+            disabled={disabled || !projectSlug || submitting || taskType !== "default"}
+            className="rounded border-border"
+          />
+          Auto-detect from prompt
+        </label>
       </div>
 
       <div className="flex gap-2">

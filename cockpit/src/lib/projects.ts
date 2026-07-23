@@ -2,6 +2,7 @@ import fs from "node:fs/promises";
 import path from "node:path";
 
 import type {
+  AgentTaskType,
   CreateProjectRequest,
   ProjectAgentConfig,
   ProjectLifecycleStatus,
@@ -11,13 +12,15 @@ import type {
   UpdateProjectRequest,
 } from "@/types/cockpit";
 
+import { DEFAULT_PRIMARY_MODEL } from "./model-catalog";
+
 import { getProjectsRoot } from "./config";
 import { resolveProjectPath } from "./filesystem";
 
 const METADATA_FILENAME = "metadata.json";
 
 const DEFAULT_AGENT_CONFIG: ProjectAgentConfig = {
-  primaryModel: "google/gemini-3.1-pro-preview",
+  primaryModel: DEFAULT_PRIMARY_MODEL,
   allowedTools: ["file_write", "terminal_exec", "browser"],
 };
 
@@ -76,6 +79,25 @@ function normalizeLifecycleStatus(value: unknown): ProjectLifecycleStatus {
   return "ACTIVE";
 }
 
+function normalizeModelByTaskType(
+  raw: unknown,
+): ProjectAgentConfig["modelByTaskType"] {
+  if (!raw || typeof raw !== "object" || Array.isArray(raw)) {
+    return undefined;
+  }
+
+  const record = raw as Record<string, unknown>;
+  const result: NonNullable<ProjectAgentConfig["modelByTaskType"]> = {};
+
+  for (const [key, value] of Object.entries(record)) {
+    if (typeof value === "string" && value.trim()) {
+      result[key as AgentTaskType] = value.trim();
+    }
+  }
+
+  return Object.keys(result).length > 0 ? result : undefined;
+}
+
 function normalizeAgentConfig(raw: unknown): ProjectAgentConfig {
   const record = asRecord(raw);
   const primaryModel =
@@ -87,9 +109,12 @@ function normalizeAgentConfig(raw: unknown): ProjectAgentConfig {
     ? record.allowedTools.filter((tool): tool is string => typeof tool === "string")
     : DEFAULT_AGENT_CONFIG.allowedTools;
 
+  const modelByTaskType = normalizeModelByTaskType(record.modelByTaskType);
+
   return {
     primaryModel,
     allowedTools: allowedTools.length > 0 ? allowedTools : DEFAULT_AGENT_CONFIG.allowedTools,
+    ...(modelByTaskType ? { modelByTaskType } : {}),
   };
 }
 
@@ -292,6 +317,10 @@ export async function updateProject(
         patch.agentConfig?.primaryModel ?? current.agentConfig.primaryModel,
       allowedTools:
         patch.agentConfig?.allowedTools ?? current.agentConfig.allowedTools,
+      modelByTaskType: {
+        ...current.agentConfig.modelByTaskType,
+        ...patch.agentConfig?.modelByTaskType,
+      },
     },
     updatedAt: new Date().toISOString(),
   };

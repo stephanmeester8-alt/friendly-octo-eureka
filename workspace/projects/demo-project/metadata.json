@@ -3,10 +3,14 @@
   "name": "Demo Project",
   "description": "Sample project scaffold for the Local Workspace Cockpit",
   "createdAt": "2026-07-23T16:00:00.000Z",
-  "updatedAt": "2026-07-23T16:00:00.000Z",
+  "updatedAt": "2026-07-23T16:58:39.331Z",
   "status": "ACTIVE",
   "agentConfig": {
     "primaryModel": "google/gemini-3.1-pro-preview",
-    "allowedTools": ["file_write", "terminal_exec", "browser"]
+    "allowedTools": [
+      "file_write",
+      "terminal_exec",
+      "browser"
+    ]
   }
 }

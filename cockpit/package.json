@@ -6,7 +6,9 @@
     "dev": "next dev",
     "build": "next build",
     "start": "next start",
-    "lint": "eslint"
+    "lint": "eslint",
+    "mock-gateway": "node scripts/mock-openclaw-gateway.mjs",
+    "test:e2e": "node scripts/e2e-workflow.mjs"
   },
   "dependencies": {
     "@monaco-editor/react": "^4.7.0",

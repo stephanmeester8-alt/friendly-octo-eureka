@@ -64,6 +64,7 @@ function mapToolEvent(
       input: data.input ?? data.args ?? data.arguments,
       output: data.output ?? data.result,
       runId: payload.runId,
+      sessionKey: readString(payload, "sessionKey"),
     },
   };
 }

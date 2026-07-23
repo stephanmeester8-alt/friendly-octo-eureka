@@ -1,36 +1,53 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+# Local Workspace Cockpit
 
-## Getting Started
+Next.js dashboard for local-first agent orchestration with OpenClaw gateway integration, project management, and HITL guardrails.
 
-First, run the development server:
+## Quick start
 
 ```bash
+cp .env.example .env.local
+npm install
 npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
 ```
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+Open http://localhost:3000
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+## End-to-end workflow test (Option B)
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
+Validates the full loop without a real OpenClaw install:
 
-## Learn More
+```text
+Prompt → Gateway → Interceptor → SSE → HITL Approve → Files on disk → Explorer API
+```
 
-To learn more about Next.js, take a look at the following resources:
+```bash
+npm run build
+npm run test:e2e
+```
 
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
+This will:
 
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
+1. Start `scripts/mock-openclaw-gateway.mjs` on `127.0.0.1:18789`
+2. Start the cockpit (`next start`)
+3. Trigger an agent run on `demo-project`
+4. Verify `APPROVAL_REQUEST` + `WAITING_APPROVAL` via SSE
+5. Approve via `POST /api/approval`
+6. Confirm `src/cli_tool.py` and `docs/CLI_SPEC.md` appear in `/api/files`
 
-## Deploy on Vercel
+### With a real OpenClaw gateway
 
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
+```bash
+openclaw gateway --port 18789
+AGENT_GATEWAY_URL=http://127.0.0.1:18789 npm run dev
+```
 
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+Then submit a prompt from the UI on any project under `workspace/projects/`.
+
+## Scripts
+
+| Script | Description |
+|--------|-------------|
+| `npm run dev` | Development server |
+| `npm run build` | Production build |
+| `npm run mock-gateway` | Standalone OpenClaw gateway mock |
+| `npm run test:e2e` | Full automated workflow test |

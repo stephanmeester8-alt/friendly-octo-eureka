@@ -1,0 +1,110 @@
+import { CreditCard, Lock } from 'lucide-react'
+import { useState } from 'react'
+import { CREDIT_PACKS } from '../../lib/types'
+import { useAuthStore } from '../../store/useAuthStore'
+import { useToastStore } from '../../store/useToastStore'
+import { Button } from '../ui/Button'
+import { Modal } from '../ui/Modal'
+import clsx from 'clsx'
+
+interface CreditTopUpModalProps {
+  open: boolean
+  onClose: () => void
+}
+
+export function CreditTopUpModal({ open, onClose }: CreditTopUpModalProps) {
+  const [selectedPack, setSelectedPack] = useState(CREDIT_PACKS[0].id)
+  const [processing, setProcessing] = useState(false)
+  const [cardNumber, setCardNumber] = useState('')
+  const [expiry, setExpiry] = useState('')
+  const [cvc, setCvc] = useState('')
+
+  const { addCredits } = useAuthStore()
+  const { addToast } = useToastStore()
+
+  const pack = CREDIT_PACKS.find((p) => p.id === selectedPack)!
+
+  const handleCheckout = async () => {
+    if (!cardNumber || !expiry || !cvc) {
+      addToast('Please fill in all payment fields.', 'error')
+      return
+    }
+    setProcessing(true)
+    await new Promise((r) => setTimeout(r, 2000))
+    addCredits(pack.credits)
+    addToast(`Successfully purchased ${pack.credits} credits!`, 'success')
+    setProcessing(false)
+    onClose()
+  }
+
+  return (
+    <Modal open={open} onClose={onClose} title="Top-up Credits" size="lg">
+      <p className="mb-6 text-sm text-slate-400">
+        Select a credit pack. Payments are processed via Stripe (test mode simulation).
+      </p>
+
+      <div className="mb-6 grid gap-3 sm:grid-cols-3">
+        {CREDIT_PACKS.map((p) => (
+          <button
+            key={p.id}
+            onClick={() => setSelectedPack(p.id)}
+            className={clsx(
+              'rounded-xl border p-4 text-left transition-all',
+              selectedPack === p.id
+                ? 'border-cyan-500/50 bg-cyan-500/10 glow-ring'
+                : 'border-slate-700 bg-slate-900/40 hover:border-slate-600',
+            )}
+          >
+            {p.popular && (
+              <span className="text-xs font-semibold text-cyan-400">Popular</span>
+            )}
+            <p className="font-semibold text-white">{p.name}</p>
+            <p className="text-2xl font-bold text-white">€{p.priceEur}</p>
+            <p className="text-sm text-slate-400">{p.credits} analyses</p>
+          </button>
+        ))}
+      </div>
+
+      {/* Stripe Elements simulation */}
+      <div className="rounded-xl border border-slate-700 bg-slate-900/60 p-5">
+        <div className="mb-4 flex items-center gap-2 text-sm text-slate-400">
+          <CreditCard className="h-4 w-4" />
+          <span>Stripe Checkout (Test Mode)</span>
+          <Lock className="ml-auto h-3 w-3" />
+        </div>
+
+        <div className="space-y-3">
+          <input
+            placeholder="Card number (4242 4242 4242 4242)"
+            value={cardNumber}
+            onChange={(e) => setCardNumber(e.target.value)}
+            className="w-full rounded-lg border border-slate-600 bg-slate-800 px-4 py-2.5 text-sm text-white placeholder:text-slate-500 focus:border-cyan-500/50 focus:outline-none"
+          />
+          <div className="grid grid-cols-2 gap-3">
+            <input
+              placeholder="MM / YY"
+              value={expiry}
+              onChange={(e) => setExpiry(e.target.value)}
+              className="rounded-lg border border-slate-600 bg-slate-800 px-4 py-2.5 text-sm text-white placeholder:text-slate-500 focus:border-cyan-500/50 focus:outline-none"
+            />
+            <input
+              placeholder="CVC"
+              value={cvc}
+              onChange={(e) => setCvc(e.target.value)}
+              className="rounded-lg border border-slate-600 bg-slate-800 px-4 py-2.5 text-sm text-white placeholder:text-slate-500 focus:border-cyan-500/50 focus:outline-none"
+            />
+          </div>
+        </div>
+      </div>
+
+      <div className="mt-6 flex items-center justify-between">
+        <p className="text-sm text-slate-400">
+          Total: <span className="font-semibold text-white">€{pack.priceEur}</span>
+        </p>
+        <Button onClick={handleCheckout} disabled={processing}>
+          {processing ? 'Processing…' : `Pay €${pack.priceEur}`}
+        </Button>
+      </div>
+    </Modal>
+  )
+}

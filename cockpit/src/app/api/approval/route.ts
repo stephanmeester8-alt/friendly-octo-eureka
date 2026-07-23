@@ -4,40 +4,25 @@ import {
   mapApprovalErrorStatus,
   processApprovalResolution,
 } from "@/lib/hitl";
-import type { ApprovalDecision } from "@/types/cockpit";
+import type { ApprovalResolveRequest } from "@/types/cockpit";
 
 export const runtime = "nodejs";
 
-interface LegacyApprovalBody {
-  approvalId?: string;
-  requestId?: string;
-  decision?: "approve" | "deny" | ApprovalDecision;
-  kind?: string;
-  projectSlug?: string;
-}
-
 export async function POST(request: NextRequest): Promise<NextResponse> {
-  let body: LegacyApprovalBody;
+  let body: ApprovalResolveRequest;
 
   try {
-    body = (await request.json()) as LegacyApprovalBody;
+    body = (await request.json()) as ApprovalResolveRequest;
   } catch {
     return NextResponse.json({ error: "Invalid JSON body" }, { status: 400 });
   }
 
-  const requestId = (body.requestId ?? body.approvalId)?.trim();
+  const requestId = body.requestId?.trim();
   if (!requestId) {
     return NextResponse.json({ error: "requestId is required" }, { status: 400 });
   }
 
-  const decision: ApprovalDecision | undefined =
-    body.decision === "approve" || body.decision === "APPROVE"
-      ? "APPROVE"
-      : body.decision === "deny" || body.decision === "REJECT"
-        ? "REJECT"
-        : undefined;
-
-  if (!decision) {
+  if (body.decision !== "APPROVE" && body.decision !== "REJECT") {
     return NextResponse.json(
       { error: "decision must be APPROVE or REJECT" },
       { status: 400 },
@@ -47,7 +32,7 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
   try {
     const result = await processApprovalResolution({
       requestId,
-      decision,
+      decision: body.decision,
       projectSlug: body.projectSlug,
       kind: body.kind,
     });

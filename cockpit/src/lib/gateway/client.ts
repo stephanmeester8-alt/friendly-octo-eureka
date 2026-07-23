@@ -7,6 +7,11 @@ import type { AgentEvent } from "@/types/cockpit";
 import { getGatewayEventBus } from "./event-bus";
 import { mapGatewayFrameToAgentEvent } from "./event-mapper";
 import {
+  interceptAgentEvent,
+  publishInterceptedEvents,
+} from "../hitl/interceptor";
+import { registerActiveSession, setExecutionStatus } from "../hitl/session-registry";
+import {
   GATEWAY_PROTOCOL_VERSION,
   type GatewayAgentAck,
   type GatewayAgentParams,
@@ -205,7 +210,9 @@ class OpenClawGatewayClient {
 
     const mapped = mapGatewayFrameToAgentEvent(frame);
     if (mapped) {
-      getGatewayEventBus().publish(mapped);
+      void interceptAgentEvent(mapped).then((events) => {
+        publishInterceptedEvents(events);
+      });
     }
   }
 
@@ -298,6 +305,25 @@ class OpenClawGatewayClient {
         sessionKey: params.sessionKey,
       },
     });
+
+    if (params.sessionKey) {
+      const projectSlug = params.sessionKey.replace(/^cockpit:project:/, "");
+      registerActiveSession({
+        sessionKey: params.sessionKey,
+        projectSlug,
+        runId,
+      });
+      setExecutionStatus("RUNNING");
+      publishInterceptedEvents([
+        {
+          id: crypto.randomUUID(),
+          timestamp: new Date().toISOString(),
+          agentName: "System",
+          type: "EXECUTION_STATUS",
+          payload: { status: "RUNNING" },
+        },
+      ]);
+    }
 
     return { runId, status };
   }

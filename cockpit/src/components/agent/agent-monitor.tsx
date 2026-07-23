@@ -3,6 +3,7 @@
 import * as React from "react";
 import {
   AlertTriangle,
+  Ban,
   Brain,
   FilePen,
   Radio,
@@ -12,13 +13,15 @@ import {
 import { Badge } from "@/components/ui/badge";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { cn, formatTimestamp } from "@/lib/utils";
-import type { AgentEvent, AgentEventType } from "@/types/cockpit";
+import type { AgentEvent, AgentEventType, ExecutionStatus } from "@/types/cockpit";
 
 const EVENT_ICONS: Record<AgentEventType, React.JSX.Element> = {
   THOUGHT: <Brain className="h-3.5 w-3.5 text-violet-400" />,
   TOOL_CALL: <Wrench className="h-3.5 w-3.5 text-sky-400" />,
   FILE_WRITE: <FilePen className="h-3.5 w-3.5 text-emerald-400" />,
   APPROVAL_REQUEST: <AlertTriangle className="h-3.5 w-3.5 text-amber-400" />,
+  UNAUTHORIZED_TOOL: <Ban className="h-3.5 w-3.5 text-red-400" />,
+  EXECUTION_STATUS: <Radio className="h-3.5 w-3.5 text-blue-400" />,
   ERROR: <AlertTriangle className="h-3.5 w-3.5 text-red-400" />,
 };
 
@@ -27,6 +30,8 @@ const EVENT_COLORS: Record<AgentEventType, string> = {
   TOOL_CALL: "border-sky-500/20 bg-sky-500/5",
   FILE_WRITE: "border-emerald-500/20 bg-emerald-500/5",
   APPROVAL_REQUEST: "border-amber-500/20 bg-amber-500/5",
+  UNAUTHORIZED_TOOL: "border-red-500/30 bg-red-500/10",
+  EXECUTION_STATUS: "border-blue-500/20 bg-blue-500/5",
   ERROR: "border-red-500/20 bg-red-500/5",
 };
 
@@ -37,17 +42,25 @@ function summarizePayload(event: AgentEvent): string {
   if (typeof payload.tool === "string") {
     return `${payload.tool}${payload.path ? ` → ${String(payload.path)}` : ""}`;
   }
+  if (event.type === "EXECUTION_STATUS" && typeof payload.status === "string") {
+    return `Execution status: ${payload.status}`;
+  }
+  if (event.type === "UNAUTHORIZED_TOOL" && typeof payload.code === "string") {
+    return String(payload.message ?? payload.code);
+  }
   return JSON.stringify(payload);
 }
 
 interface AgentMonitorProps {
   onApprovalRequest?: (event: AgentEvent) => void;
   onFileWrite?: (event: AgentEvent) => void;
+  onExecutionStatus?: (status: ExecutionStatus) => void;
 }
 
 export function AgentMonitor({
   onApprovalRequest,
   onFileWrite,
+  onExecutionStatus,
 }: AgentMonitorProps): React.JSX.Element {
   const [events, setEvents] = React.useState<AgentEvent[]>([]);
   const [connected, setConnected] = React.useState(false);
@@ -63,6 +76,19 @@ export function AgentMonitor({
       const event = JSON.parse(message.data) as AgentEvent;
       setEvents((current) => [event, ...current].slice(0, 200));
 
+      if (event.type === "EXECUTION_STATUS") {
+        const status = event.payload.status;
+        if (
+          status === "IDLE" ||
+          status === "RUNNING" ||
+          status === "WAITING_APPROVAL" ||
+          status === "COMPLETED" ||
+          status === "FAILED"
+        ) {
+          onExecutionStatus?.(status);
+        }
+      }
+
       if (event.type === "APPROVAL_REQUEST") {
         const requestId = String(event.payload.requestId ?? event.id);
         if (!seenApprovalIds.current.has(requestId)) {
@@ -74,13 +100,17 @@ export function AgentMonitor({
       if (event.type === "FILE_WRITE") {
         onFileWrite?.(event);
       }
+
+      if (event.type === "UNAUTHORIZED_TOOL") {
+        onExecutionStatus?.("FAILED");
+      }
     };
 
     return () => {
       source.close();
       setConnected(false);
     };
-  }, [onApprovalRequest, onFileWrite]);
+  }, [onApprovalRequest, onFileWrite, onExecutionStatus]);
 
   return (
     <div className="flex h-full flex-col border-l border-border bg-card">

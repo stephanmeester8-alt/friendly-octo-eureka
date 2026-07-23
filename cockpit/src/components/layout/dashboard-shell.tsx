@@ -11,23 +11,6 @@ import { ProjectExplorer } from "@/components/explorer/project-explorer";
 import { StatusBadge } from "@/components/ui/badge";
 import type { AgentEvent, ExecutionStatus } from "@/types/cockpit";
 
-async function resolveApproval(
-  approvalId: string,
-  decision: "approve" | "deny",
-  kind?: string,
-): Promise<void> {
-  const response = await fetch("/api/agent/approval", {
-    method: "POST",
-    headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({ approvalId, decision, kind }),
-  });
-
-  if (!response.ok) {
-    const body = (await response.json()) as { error?: string };
-    throw new Error(body.error ?? "Failed to resolve approval");
-  }
-}
-
 export function DashboardShell(): React.JSX.Element {
   const [selectedPath, setSelectedPath] = React.useState<string | null>(
     "demo-project/src/index.ts",
@@ -45,25 +28,21 @@ export function DashboardShell(): React.JSX.Element {
     setExecutionStatus("WAITING_APPROVAL");
   }, []);
 
-  const handleApprove = async (requestId: string, kind?: string) => {
-    try {
-      await resolveApproval(requestId, "approve", kind);
+  const handleApprovalResolved = React.useCallback(
+    (input: { executionStatus: string }) => {
       setApprovalRequest(null);
-      setExecutionStatus("RUNNING");
-    } catch (error) {
-      console.error(error);
-    }
-  };
-
-  const handleDeny = async (requestId: string, kind?: string) => {
-    try {
-      await resolveApproval(requestId, "deny", kind);
-      setApprovalRequest(null);
-      setExecutionStatus("IDLE");
-    } catch (error) {
-      console.error(error);
-    }
-  };
+      if (
+        input.executionStatus === "IDLE" ||
+        input.executionStatus === "RUNNING" ||
+        input.executionStatus === "WAITING_APPROVAL" ||
+        input.executionStatus === "COMPLETED" ||
+        input.executionStatus === "FAILED"
+      ) {
+        setExecutionStatus(input.executionStatus);
+      }
+    },
+    [],
+  );
 
   const handlePromptSubmitted = () => {
     setExecutionStatus("RUNNING");
@@ -71,6 +50,10 @@ export function DashboardShell(): React.JSX.Element {
 
   const handleFileWrite = React.useCallback(() => {
     setExplorerRefreshKey((current) => current + 1);
+  }, []);
+
+  const handleExecutionStatus = React.useCallback((status: ExecutionStatus) => {
+    setExecutionStatus(status);
   }, []);
 
   return (
@@ -93,15 +76,15 @@ export function DashboardShell(): React.JSX.Element {
           </span>
           <span className="flex items-center gap-1.5">
             <Activity className="h-3.5 w-3.5" />
-            OpenClaw Gateway
+            OpenClaw Gateway + HITL
           </span>
         </div>
       </header>
 
       <HitlBanner
         request={approvalRequest}
-        onApprove={(requestId, kind) => void handleApprove(requestId, kind)}
-        onDeny={(requestId, kind) => void handleDeny(requestId, kind)}
+        projectSlug={projectSlug}
+        onResolved={handleApprovalResolved}
       />
 
       <div className="grid min-h-0 flex-1 grid-cols-[260px_1fr_320px]">
@@ -124,6 +107,7 @@ export function DashboardShell(): React.JSX.Element {
         <AgentMonitor
           onApprovalRequest={handleApprovalRequest}
           onFileWrite={handleFileWrite}
+          onExecutionStatus={handleExecutionStatus}
         />
       </div>
     </div>

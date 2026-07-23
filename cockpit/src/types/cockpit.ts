@@ -36,7 +36,13 @@ export type AgentEventType =
   | "TOOL_CALL"
   | "FILE_WRITE"
   | "APPROVAL_REQUEST"
+  | "UNAUTHORIZED_TOOL"
+  | "EXECUTION_STATUS"
   | "ERROR";
+
+export type ToolRiskLevel = "low" | "medium" | "high";
+
+export type ApprovalDecision = "APPROVE" | "REJECT";
 
 export interface AgentEvent {
   id: string;
@@ -50,8 +56,26 @@ export interface ApprovalRequestPayload {
   requestId: string;
   toolName: string;
   description: string;
-  riskLevel: "low" | "medium" | "high";
+  riskLevel: ToolRiskLevel;
+  projectSlug?: string;
+  runId?: string;
+  source?: "cockpit" | "gateway";
+  kind?: string;
   arguments?: Record<string, unknown>;
+}
+
+export interface ApprovalResolveRequest {
+  requestId: string;
+  decision: ApprovalDecision;
+  projectSlug?: string;
+  kind?: string;
+}
+
+export interface ApprovalResolveResponse {
+  ok: true;
+  requestId: string;
+  decision: ApprovalDecision;
+  executionStatus: ExecutionStatus;
 }
 
 // ---------------------------------------------------------------------------

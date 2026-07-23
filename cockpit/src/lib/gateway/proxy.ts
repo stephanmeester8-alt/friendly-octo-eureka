@@ -1,3 +1,4 @@
+import { resolveEffectiveAllowedTools } from "@/lib/mcp";
 import { readProjectMetadata } from "@/lib/projects";
 import type { AgentEvent } from "@/types/cockpit";
 
@@ -96,7 +97,7 @@ export class GatewayExecutionProxy {
       direction: "inbound",
     });
 
-    if (!isToolAllowed(toolName, metadata.agentConfig.allowedTools)) {
+    if (!isToolAllowed(toolName, resolveEffectiveAllowedTools(metadata))) {
       return { action: "deny", context };
     }
 
@@ -145,7 +146,7 @@ export class GatewayExecutionProxy {
       method: frame.method,
     });
 
-    if (!isToolAllowed(toolName, metadata.agentConfig.allowedTools)) {
+    if (!isToolAllowed(toolName, resolveEffectiveAllowedTools(metadata))) {
       return { action: "deny", context };
     }
 

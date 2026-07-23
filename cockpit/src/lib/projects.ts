@@ -13,6 +13,7 @@ import type {
 } from "@/types/cockpit";
 
 import { DEFAULT_PRIMARY_MODEL } from "./model-catalog";
+import { getDefaultEnabledMcpServers, normalizeMcpConfig } from "./mcp";
 
 import { getProjectsRoot } from "./config";
 import { resolveProjectPath } from "./filesystem";
@@ -139,6 +140,7 @@ export function normalizeProjectMetadata(
     updatedAt: readString(record, "updatedAt") ?? now,
     status: normalizeLifecycleStatus(record.status),
     agentConfig: normalizeAgentConfig(record.agentConfig ?? record),
+    mcpConfig: normalizeMcpConfig(record.mcpConfig),
   };
 }
 
@@ -280,6 +282,7 @@ export async function createProject(
     updatedAt: now,
     status: "ACTIVE",
     agentConfig: { ...DEFAULT_AGENT_CONFIG },
+    mcpConfig: { enabledServers: getDefaultEnabledMcpServers() },
   };
 
   await fs.mkdir(path.join(projectDir, "src"), { recursive: true });
@@ -322,6 +325,16 @@ export async function updateProject(
         ...patch.agentConfig?.modelByTaskType,
       },
     },
+    mcpConfig: patch.mcpConfig
+      ? normalizeMcpConfig(
+          {
+            enabledServers:
+              patch.mcpConfig.enabledServers ??
+              current.mcpConfig?.enabledServers,
+          },
+          current.mcpConfig?.enabledServers ?? getDefaultEnabledMcpServers(),
+        )
+      : current.mcpConfig,
     updatedAt: new Date().toISOString(),
   };
 

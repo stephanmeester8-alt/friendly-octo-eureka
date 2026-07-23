@@ -8,6 +8,7 @@
     "start": "next start",
     "lint": "eslint",
     "mock-gateway": "node scripts/mock-openclaw-gateway.mjs",
+    "test:model-routing": "npx tsx scripts/test-model-routing.ts",
     "test:e2e": "node scripts/e2e-workflow.mjs"
   },
   "dependencies": {

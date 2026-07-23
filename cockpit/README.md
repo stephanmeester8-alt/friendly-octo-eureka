@@ -12,6 +12,19 @@ npm run dev
 
 Open http://localhost:3000
 
+## Model routing
+
+Per-project model configuration is stored in `workspace/projects/<slug>/metadata.json`:
+
+- `agentConfig.primaryModel` — default model for Auto task type
+- `agentConfig.modelByTaskType` — optional overrides per task (`architecture`, `code`, `review`, `docs`)
+
+The prompt bar supports task type selection and optional auto-detection from the prompt text. Resolved model is sent to the OpenClaw gateway via the `model` RPC param.
+
+```bash
+npm run test:model-routing
+```
+
 ## End-to-end workflow test (Option B)
 
 Validates the full loop without a real OpenClaw install:

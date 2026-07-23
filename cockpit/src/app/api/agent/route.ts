@@ -34,6 +34,8 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
       projectSlug,
       prompt,
       agentId: body.agentName,
+      taskType: body.taskType,
+      autoDetectTaskType: body.autoDetectTaskType,
     });
 
     await touchProjectActivity(projectSlug).catch(() => undefined);
@@ -41,6 +43,8 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
     const response: TriggerAgentResponse = {
       taskId: result.runId,
       status: result.status === "error" ? "FAILED" : "RUNNING",
+      model: result.model,
+      taskType: result.taskType,
     };
 
     return NextResponse.json(response, { status: 202 });

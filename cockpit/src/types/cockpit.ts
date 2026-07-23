@@ -86,9 +86,17 @@ export type ProjectLifecycleStatus = "ACTIVE" | "ARCHIVED" | "COMPLETED";
 
 export type ProjectTemplate = "default" | "python-service" | "nextjs-app";
 
+export type AgentTaskType =
+  | "default"
+  | "architecture"
+  | "code"
+  | "review"
+  | "docs";
+
 export interface ProjectAgentConfig {
   primaryModel: string;
   allowedTools: string[];
+  modelByTaskType?: Partial<Record<AgentTaskType, string>>;
 }
 
 export interface ProjectMetadata {
@@ -177,9 +185,13 @@ export interface TriggerAgentRequest {
   projectSlug: string;
   prompt: string;
   agentName?: string;
+  taskType?: AgentTaskType;
+  autoDetectTaskType?: boolean;
 }
 
 export interface TriggerAgentResponse {
   taskId: string;
   status: ExecutionStatus;
+  model?: string;
+  taskType?: AgentTaskType;
 }

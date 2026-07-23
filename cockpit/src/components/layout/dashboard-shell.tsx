@@ -1,14 +1,16 @@
 "use client";
 
 import * as React from "react";
-import { Activity, Cpu, FolderKanban } from "lucide-react";
+import { Activity, Cpu, FolderKanban, Settings2 } from "lucide-react";
 
 import { AgentMonitor } from "@/components/agent/agent-monitor";
 import { HitlBanner } from "@/components/agent/hitl-banner";
 import { CodeViewer } from "@/components/editor/code-viewer";
 import { PromptInput } from "@/components/editor/prompt-input";
 import { ProjectExplorer } from "@/components/explorer/project-explorer";
+import { ProjectSettingsPanel } from "@/components/projects/project-settings-panel";
 import { StatusBadge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
 import type { AgentEvent, ExecutionStatus } from "@/types/cockpit";
 
 export function DashboardShell(): React.JSX.Element {
@@ -20,6 +22,7 @@ export function DashboardShell(): React.JSX.Element {
   const [executionStatus, setExecutionStatus] =
     React.useState<ExecutionStatus>("IDLE");
   const [explorerRefreshKey, setExplorerRefreshKey] = React.useState(0);
+  const [settingsOpen, setSettingsOpen] = React.useState(false);
 
   const projectSlug = selectedPath?.split("/")[0];
 
@@ -70,6 +73,18 @@ export function DashboardShell(): React.JSX.Element {
         </div>
 
         <div className="flex items-center gap-4 text-xs text-muted-foreground">
+          {projectSlug ? (
+            <Button
+              type="button"
+              variant="ghost"
+              size="sm"
+              className="h-7 gap-1.5 px-2 text-xs text-muted-foreground"
+              onClick={() => setSettingsOpen(true)}
+            >
+              <Settings2 className="h-3.5 w-3.5" />
+              Agent settings
+            </Button>
+          ) : null}
           <span className="flex items-center gap-1.5">
             <FolderKanban className="h-3.5 w-3.5" />
             workspace/projects
@@ -110,6 +125,12 @@ export function DashboardShell(): React.JSX.Element {
           onExecutionStatus={handleExecutionStatus}
         />
       </div>
+
+      <ProjectSettingsPanel
+        projectSlug={projectSlug}
+        isOpen={settingsOpen}
+        onClose={() => setSettingsOpen(false)}
+      />
     </div>
   );
 }

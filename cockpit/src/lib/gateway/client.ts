@@ -2,7 +2,9 @@ import path from "node:path";
 import { WebSocket } from "ws";
 
 import { GATEWAY_CONFIG, getProjectsRoot } from "@/lib/config";
-import type { AgentEvent } from "@/types/cockpit";
+import { resolveModelRoute } from "@/lib/model-routing";
+import { readProjectMetadata } from "@/lib/projects";
+import type { AgentEvent, AgentTaskType } from "@/types/cockpit";
 
 import { getGatewayEventBus } from "./event-bus";
 import { mapGatewayFrameToAgentEvent } from "./event-mapper";
@@ -381,9 +383,12 @@ class OpenClawGatewayClient {
       agentName: params.agentId ?? "OpenClaw",
       type: "THOUGHT",
       payload: {
-        message: "Agent run accepted",
+        message: params.model
+          ? `Agent run accepted (model: ${params.model})`
+          : "Agent run accepted",
         runId,
         sessionKey: params.sessionKey,
+        model: params.model,
       },
     });
 
@@ -476,25 +481,39 @@ export async function triggerProjectAgentRun(input: {
   projectSlug: string;
   prompt: string;
   agentId?: string;
-}): Promise<GatewayAgentAck> {
+  taskType?: AgentTaskType;
+  autoDetectTaskType?: boolean;
+}): Promise<GatewayAgentAck & { model: string; taskType: AgentTaskType }> {
   const client = getGatewayClient();
   const sessionKey = buildProjectSessionKey(input.projectSlug);
   const cwd = resolveProjectCwd(input.projectSlug);
   const workspaceRoot = path.dirname(getProjectsRoot());
+  const metadata = await readProjectMetadata(input.projectSlug);
+  const route = resolveModelRoute({
+    agentConfig: metadata.agentConfig,
+    taskType: input.taskType,
+    prompt: input.prompt,
+    autoDetectTaskType: input.autoDetectTaskType ?? true,
+  });
 
-  return client.runAgent({
+  const result = await client.runAgent({
     message: input.prompt,
     idempotencyKey: crypto.randomUUID(),
     sessionKey,
     agentId: input.agentId,
+    model: route.model,
     cwd,
     extraSystemPrompt: [
       "You are operating inside the Local Workspace Cockpit.",
       `Project slug: ${input.projectSlug}`,
       `Project directory: ${cwd}`,
       `Workspace root: ${workspaceRoot}`,
+      `Routed model: ${route.model}`,
+      `Task type: ${route.taskType}`,
       "Persist generated artifacts under the project directory (src/, docs/, logs/).",
     ].join("\n"),
     timeout: REQUEST_TIMEOUT_MS,
   });
+
+  return { ...result, model: route.model, taskType: route.taskType };
 }

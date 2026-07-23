@@ -62,8 +62,8 @@ export function DashboardShell(): React.JSX.Element {
   }, []);
 
   return (
-    <div className="flex h-screen flex-col bg-background text-foreground">
-      <header className="flex h-11 shrink-0 items-center justify-between border-b border-border bg-card px-4">
+    <div className="flex h-screen max-h-screen flex-col overflow-hidden bg-background text-foreground">
+      <header className="flex h-14 shrink-0 items-center justify-between border-b border-border bg-card px-4">
         <div className="flex items-center gap-3">
           <div className="flex items-center gap-2">
             <Cpu className="h-4 w-4 text-primary" />
@@ -116,15 +116,17 @@ export function DashboardShell(): React.JSX.Element {
         onResolved={handleApprovalResolved}
       />
 
-      <div className="grid min-h-0 flex-1 grid-cols-[260px_1fr_320px]">
-        <ProjectExplorer
-          selectedPath={selectedPath}
-          refreshKey={explorerRefreshKey}
-          onSelectFile={setSelectedPath}
-        />
+      <div className="grid min-h-0 flex-1 grid-cols-[260px_1fr_320px] overflow-hidden">
+        <div className="min-h-0 overflow-hidden">
+          <ProjectExplorer
+            selectedPath={selectedPath}
+            refreshKey={explorerRefreshKey}
+            onSelectFile={setSelectedPath}
+          />
+        </div>
 
-        <div className="flex min-w-0 flex-col">
-          <div className="min-h-0 flex-1">
+        <div className="flex min-h-0 min-w-0 flex-col overflow-hidden">
+          <div className="min-h-0 flex-1 overflow-hidden">
             <CodeViewer filePath={selectedPath} />
           </div>
           <PromptInput
@@ -133,11 +135,13 @@ export function DashboardShell(): React.JSX.Element {
           />
         </div>
 
-        <AgentMonitor
-          onApprovalRequest={handleApprovalRequest}
-          onFileWrite={handleFileWrite}
-          onExecutionStatus={handleExecutionStatus}
-        />
+        <div className="min-h-0 overflow-hidden">
+          <AgentMonitor
+            onApprovalRequest={handleApprovalRequest}
+            onFileWrite={handleFileWrite}
+            onExecutionStatus={handleExecutionStatus}
+          />
+        </div>
       </div>
 
       <ProjectSettingsPanel

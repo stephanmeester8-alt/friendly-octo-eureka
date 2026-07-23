@@ -95,7 +95,7 @@ export function HitlBanner({
   };
 
   return (
-    <div className="border-b border-amber-500/30 bg-amber-500/10 px-4 py-3">
+    <div className="shrink-0 border-b border-amber-500/30 bg-amber-500/10 px-4 py-3">
       <div className="flex flex-wrap items-start justify-between gap-3">
         <div className="flex gap-3">
           <ShieldAlert className="mt-0.5 h-5 w-5 shrink-0 text-amber-400" />

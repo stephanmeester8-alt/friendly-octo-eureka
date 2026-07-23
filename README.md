@@ -1,11 +1,13 @@
 # Enterprise AI Workspace Pipeline
 
-A local Python application that orchestrates Google Gemini **Interactions API** workflows with enterprise safety controls:
+A local Python application that orchestrates Google Gemini **Interactions API** workflows for **companies in any sector** — with enterprise safety controls:
 
 - **Antigravity agent** (`antigravity-preview-05-2026`) for remote sandbox execution
 - **Dynamic model routing** via `gemini-3.5-flash` with server-side context chaining
 - **Human-in-the-Loop (HITL)** approval gate before any local disk writes
-- **Safe writer** restricted to the `./output/` directory
+- **Safe writer** restricted to the `./output/<project>/` directory
+
+Use it for compliance reviews, strategic planning, proposal drafting, process optimization, due diligence, or any knowledge-work task — finance, healthcare, legal, manufacturing, retail, public sector, and beyond.
 
 ## Requirements
 
@@ -45,6 +47,20 @@ Run with a custom task prompt:
 python3 main.py "Research Python async patterns and draft a reference guide."
 ```
 
+Project-scoped output (auto-derived subfolder under `./output/`):
+
+```bash
+python3 main.py --project acme_compliance_review_2026 "Compliance gap analysis for ISO 27001 readiness."
+python3 main.py --open-output --project nordvik_proposal_q3 "Draft a B2B services proposal."
+python3 main.py --project helix_patient_intake "Summarize intake workflow improvements for a clinic."
+```
+
+Cross-sector enterprise sales demo (built-in master prompt):
+
+```bash
+python3 main.py --demo --compact --project enterprise_demo_2026 --open-output
+```
+
 ### Windows (PowerShell)
 
 ```powershell
@@ -59,7 +75,12 @@ pip install -r requirements.txt
 # API key MUST be quoted in PowerShell (keys often start with "AQ.")
 $env:GEMINI_API_KEY = "your-api-key-here"
 
-py main.py "Your task prompt here"
+# IMPORTANT: use `python`, not `py`, once the venv is activated.
+# `py` can bypass the venv and load an older system-wide google-genai.
+python main.py "Your task prompt here"
+
+# Or use the helper script (always targets .venv):
+.\run.ps1 --demo --compact --project enterprise_demo_2026 --open-output
 ```
 
 Or persist the key in a `.env` file (recommended):
@@ -67,15 +88,16 @@ Or persist the key in a `.env` file (recommended):
 ```powershell
 Copy-Item .env.example .env
 # Edit .env and paste your key, then:
-py main.py
+python main.py
 ```
 
 ### Common errors
 
 | Error | Fix |
 |-------|-----|
+| `google-genai 1.73.1 is too old` but `pip show` reports `2.12.x` | Wrong interpreter. Use `python main.py` or `.\run.ps1`, not `py main.py`. Upgrade with `python -m pip install -U "google-genai>=2.12.0"`. |
 | `get() got an unexpected keyword argument 'interaction_id'` | Use `client.interactions.get(id=interaction_id)` — the parameter is **`id`**, not `interaction_id`. |
-| `create() got an unexpected keyword argument 'environment'` | Your `google-genai` is too old (legacy `InteractionsResource`). Upgrade inside the venv: `pip install -U "google-genai>=2.12.0"` |
+| `create() got an unexpected keyword argument 'environment'` | Your `google-genai` is too old (legacy `InteractionsResource`). Upgrade inside the venv: `python -m pip install -U "google-genai>=2.12.0"` |
 | `GEMINI_API_KEY environment variable is not set` | Set with quotes: `$env:GEMINI_API_KEY = "AQ...."` |
 | `Activate.ps1` not found | Run `py -m venv .venv` first, from the project directory. |
 
@@ -83,12 +105,48 @@ py main.py
 
 | Step | Module | Description |
 |------|--------|-------------|
-| 1/4 | `agents.py` | Starts Antigravity in background mode, polls until `completed` |
+| 1/4 | `agents.py` | Starts Antigravity in background mode, polls with live elapsed-time telemetry |
 | 2/4 | `postprocess.py` | Routes to Gemini 3.5 Flash via `previous_interaction_id` for JSON + Markdown |
-| 3/4 | `approval.py` | Displays summary and proposed files; prompts `[Y/N]` |
-| 4/4 | `writer.py` | Writes approved files to `./output/` only |
+| 3/4 | `approval.py` | Displays summary, target project folder, and proposed files; prompts `[Y/N]` |
+| 4/4 | `writer.py` | Writes approved files to `./output/<project>/` with Markdown sanitization |
 
 **No files are ever written without explicit CLI approval.**
+
+### Demo telemetry
+
+During Antigravity polling, the terminal shows live elapsed time:
+
+```text
+[Antigravity] Poll 4/360 — status: in_progress (15s elapsed)
+```
+
+Approved artifacts land in a timestamped, audit-ready run folder:
+
+```text
+output/
+└── enterprise_demo_2026/
+    └── 20260721_143052/
+        ├── INDEX.md              ← start here (prospect-friendly)
+        ├── run_manifest.json     ← audit trail
+        └── artifacts/
+            ├── 01_business_analysis.md
+            ├── 02_improvement_plan.csv
+            ├── 03_change_management.md
+            └── summary.md
+```
+
+Use `--compact` for a sales-friendly terminal and HITL review table.
+
+### Sector examples
+
+| Sector | Example prompt |
+|--------|----------------|
+| Finance | `"Analyse AML/KYC gaps and draft a remediation roadmap."` |
+| Healthcare | `"Review patient intake workflow and propose efficiency improvements."` |
+| Legal | `"Summarize contract risks in a vendor MSA and suggest redlines."` |
+| Manufacturing | `"Evaluate supply-chain disruption scenarios and mitigation steps."` |
+| Retail | `"Draft a loyalty-program ROI model and rollout plan."` |
+| Public sector | `"Assess procurement compliance and document control gaps."` |
 
 ## Project Structure
 
@@ -99,10 +157,17 @@ py main.py
 ├── agents.py       # Antigravity agent execution + status polling
 ├── postprocess.py  # Dynamic model routing (gemini-3.5-flash)
 ├── approval.py     # HITL security approval gate
-├── writer.py       # Safe local file writer (./output/ only)
+├── console.py      # Unified terminal presentation (--compact mode)
+├── manifest.py     # INDEX.md + run_manifest.json generation
+├── project_paths.py # Project slug + timestamped run paths
+├── sanitize.py     # Markdown sanitization before disk writes
+├── writer.py       # Safe local file writer (./output/<project>/ only)
 ├── main.py         # CLI entry point
+├── run.ps1         # Windows helper (forces .venv python)
 ├── requirements.txt
 └── output/         # Created at runtime after approval
+    └── <project>/  # Project namespace
+        └── <run_id>/  # Timestamped run (YYYYMMDD_HHMMSS)
 ```
 
 ## Architecture Notes
@@ -117,3 +182,10 @@ py main.py
 - Zero autonomous file mutations — all writes require explicit `Y` approval
 - Path traversal protection in `writer.py` (basename-only, resolved-path checks)
 - Post-process layer enforces structured JSON output with schema validation
+
+## Sales materials (NL)
+
+Cross-sector outreach templates and Dutch pricing / offer terms:
+
+- [`sales/outreach-templates-nl.md`](sales/outreach-templates-nl.md) — LinkedIn & e-mail sequences
+- [`sales/prijzen-offerte-voorwaarden-nl.md`](sales/prijzen-offerte-voorwaarden-nl.md) — pricing, offer template, terms

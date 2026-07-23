@@ -65,4 +65,7 @@ class PipelineResult(BaseModel):
     agent_result: AgentRunResult
     postprocess: PostProcessPayload
     approved: bool
+    project_slug: str = ""
+    run_id: str = ""
+    output_dir: str = ""
     written_files: list[WriteResult] = Field(default_factory=list)

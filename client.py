@@ -4,10 +4,11 @@ from __future__ import annotations
 
 import sys
 from importlib.metadata import PackageNotFoundError, version
+from pathlib import Path
 
 from google import genai
 
-from config import load_config
+from config import WORKSPACE_ROOT, load_config
 
 # Managed-agent `environment=` support requires the GAOS interactions layer
 # (GeminiNextGenInteractions). Older releases expose InteractionsResource,
@@ -26,26 +27,73 @@ def _parse_version(raw: str) -> tuple[int, int, int]:
     )
 
 
+def _project_venv_python() -> Path | None:
+    """Return the project-local venv interpreter path when it exists."""
+    if sys.platform == "win32":
+        candidate = WORKSPACE_ROOT / ".venv" / "Scripts" / "python.exe"
+    else:
+        candidate = WORKSPACE_ROOT / ".venv" / "bin" / "python"
+    return candidate if candidate.is_file() else None
+
+
+def _runtime_diagnostics() -> str:
+    """Build a diagnostic block for SDK / interpreter mismatch errors."""
+    lines = [f"  Python executable: {sys.executable}"]
+
+    venv_python = _project_venv_python()
+    if venv_python is not None:
+        lines.append(f"  Project venv:    {venv_python}")
+        try:
+            using_venv = Path(sys.executable).resolve() == venv_python.resolve()
+        except OSError:
+            using_venv = False
+        if not using_venv:
+            lines.append(
+                "  Interpreter mismatch: the active shell may be using a different "
+                "Python than the project .venv."
+            )
+
+    try:
+        genai_path = Path(genai.__file__).resolve()
+        lines.append(f"  google.genai path: {genai_path}")
+    except (AttributeError, TypeError, OSError):
+        pass
+
+    if sys.platform == "win32":
+        lines.extend(
+            [
+                "  Windows tip: after Activate.ps1, run `python main.py` — not `py main.py`.",
+                "  The `py` launcher can ignore the activated venv and load an older SDK.",
+                "  Or run explicitly: .\\.venv\\Scripts\\python.exe main.py",
+            ]
+        )
+    else:
+        lines.append("  Tip: use the project venv interpreter: .venv/bin/python main.py")
+
+    return "\n".join(lines)
+
+
+def _sdk_upgrade_hint() -> str:
+    min_ver = ".".join(str(n) for n in MIN_SDK_VERSION)
+    return (
+        f"  Fix (same interpreter as above):\n"
+        f"    python -m pip install -U \"google-genai>={min_ver}\"\n"
+        f"    python main.py \"your prompt\""
+    )
+
+
 def validate_sdk() -> str:
     """Ensure google-genai is new enough for managed agents + environment."""
     try:
         installed = version("google-genai")
     except PackageNotFoundError as exc:
         print(
-            "[ERROR] google-genai is not installed. Run: pip install -r requirements.txt",
+            "[ERROR] google-genai is not installed.\n"
+            f"{_runtime_diagnostics()}\n"
+            "  Fix: python -m pip install -r requirements.txt",
             file=sys.stderr,
         )
         raise SystemExit(1) from exc
-
-    if _parse_version(installed) < MIN_SDK_VERSION:
-        min_ver = ".".join(str(n) for n in MIN_SDK_VERSION)
-        print(
-            f"[ERROR] google-genai {installed} is too old for managed agents.\n"
-            f"  Required: >= {min_ver}\n"
-            f"  Fix: pip install -U 'google-genai>={min_ver}'",
-            file=sys.stderr,
-        )
-        raise SystemExit(1)
 
     # Runtime guard against legacy InteractionsResource routing.
     probe = genai.Client(api_key="probe")
@@ -54,7 +102,19 @@ def validate_sdk() -> str:
         print(
             "[ERROR] Legacy InteractionsResource detected — managed-agent features "
             "like `environment=` are unavailable.\n"
-            "  Fix: pip install -U 'google-genai>=2.12.0'  (use the project venv)",
+            f"{_runtime_diagnostics()}\n"
+            f"{_sdk_upgrade_hint()}",
+            file=sys.stderr,
+        )
+        raise SystemExit(1)
+
+    if _parse_version(installed) < MIN_SDK_VERSION:
+        min_ver = ".".join(str(n) for n in MIN_SDK_VERSION)
+        print(
+            f"[ERROR] google-genai {installed} is too old for managed agents.\n"
+            f"  Required: >= {min_ver}\n"
+            f"{_runtime_diagnostics()}\n"
+            f"{_sdk_upgrade_hint()}",
             file=sys.stderr,
         )
         raise SystemExit(1)

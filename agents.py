@@ -16,9 +16,16 @@ from config import (
     POLL_INTERVAL_SECONDS,
     POLL_MAX_ATTEMPTS,
 )
+from console import (
+    is_compact,
+    print_info,
+    print_interaction_id,
+    print_poll,
+    print_poll_complete,
+    print_step,
+)
 from schemas import AgentRunResult
 
-# Terminal statuses — normalized to lowercase for comparison.
 TERMINAL_STATUSES = frozenset(
     {
         "completed",
@@ -46,13 +53,22 @@ def normalize_status(status: Any) -> str:
 
 
 def is_terminal_status(status: Any) -> bool:
-    """Return True when the interaction has reached a terminal state."""
     return normalize_status(status) in TERMINAL_STATUSES
 
 
 def is_success_status(status: Any) -> bool:
-    """Return True when the interaction completed successfully."""
     return normalize_status(status) in SUCCESS_STATUSES
+
+
+def format_elapsed(seconds: float) -> str:
+    total = max(0, int(seconds))
+    hours, remainder = divmod(total, 3600)
+    minutes, secs = divmod(remainder, 60)
+    if hours:
+        return f"{hours}h {minutes}m {secs}s"
+    if minutes:
+        return f"{minutes}m {secs}s"
+    return f"{secs}s"
 
 
 def poll_interaction(
@@ -64,20 +80,27 @@ def poll_interaction(
     label: str = "Interaction",
 ) -> Any:
     """Poll an interaction until it reaches a terminal status."""
+    started = time.monotonic()
+
     for attempt in range(1, max_attempts + 1):
         interaction = client.interactions.get(id=interaction_id)
         status = normalize_status(interaction.status)
+        elapsed = format_elapsed(time.monotonic() - started)
 
-        print(f"  [{label}] Poll {attempt}/{max_attempts} — status: {status}")
+        print_poll(label, attempt, max_attempts, status, elapsed)
 
         if is_terminal_status(interaction.status):
+            if is_compact() and attempt > 1 and status != "in_progress":
+                print()
+            print_poll_complete(label, elapsed)
             return interaction
 
         time.sleep(poll_interval)
 
+    elapsed = format_elapsed(time.monotonic() - started)
     raise TimeoutError(
         f"{label} {interaction_id!r} did not reach a terminal status "
-        f"after {max_attempts} polls ({poll_interval}s interval)."
+        f"after {max_attempts} polls ({poll_interval}s interval, {elapsed} elapsed)."
     )
 
 
@@ -89,8 +112,11 @@ def run_antigravity_agent(
     """Start the Antigravity agent in background mode and poll until completion."""
     client = client or get_client()
 
-    print(f"[1/4] Starting Antigravity agent ({ANTIGRAVITY_AGENT})...")
-    print(f"  Environment: {AGENT_ENVIRONMENT} | Background: True | Store: True")
+    print_step(
+        1,
+        f"Starting Antigravity agent ({ANTIGRAVITY_AGENT})...",
+        detail=f"Environment: {AGENT_ENVIRONMENT} | Background: True | Store: True",
+    )
 
     interaction = client.interactions.create(
         agent=ANTIGRAVITY_AGENT,
@@ -101,8 +127,9 @@ def run_antigravity_agent(
     )
 
     interaction_id = interaction.id
-    print(f"  Interaction ID: {interaction_id}")
-    print(f"  Initial status: {normalize_status(interaction.status)}")
+    print_interaction_id("Interaction ID", interaction_id)
+    if not is_compact():
+        print_info(f"Initial status: {normalize_status(interaction.status)}")
 
     completed = poll_interaction(
         client,
@@ -119,8 +146,9 @@ def run_antigravity_agent(
         print(f"  Detail: {error_detail}", file=sys.stderr)
         raise RuntimeError(f"Antigravity agent failed with status: {status}")
 
-    print(f"[1/4] Antigravity completed successfully.")
-    print(f"  Output length: {len(output_text)} characters")
+    print_step(1, "Antigravity completed successfully.")
+    if not is_compact():
+        print_info(f"Output length: {len(output_text)} characters")
 
     return AgentRunResult(
         interaction_id=interaction_id,

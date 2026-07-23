@@ -1,0 +1,10 @@
+{
+  "slug": "demo-project",
+  "displayName": "Demo Project",
+  "status": "IDLE",
+  "createdAt": "2026-07-23T16:00:00.000Z",
+  "updatedAt": "2026-07-23T16:00:00.000Z",
+  "model": "gemini-3.5-flash",
+  "lastAgent": "ArchitectAgent",
+  "description": "Sample project scaffold for the Local Workspace Cockpit"
+}

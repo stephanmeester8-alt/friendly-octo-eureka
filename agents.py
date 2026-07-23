@@ -5,7 +5,7 @@ from __future__ import annotations
 import enum
 import sys
 import time
-from typing import Any
+from typing import Any, Callable
 
 from google import genai
 
@@ -55,6 +55,9 @@ def is_success_status(status: Any) -> bool:
     return normalize_status(status) in SUCCESS_STATUSES
 
 
+PollCallback = Callable[[int, int, str], None]
+
+
 def poll_interaction(
     client: genai.Client,
     interaction_id: str,
@@ -62,6 +65,7 @@ def poll_interaction(
     poll_interval: float = POLL_INTERVAL_SECONDS,
     max_attempts: int = POLL_MAX_ATTEMPTS,
     label: str = "Interaction",
+    on_poll: PollCallback | None = None,
 ) -> Any:
     """Poll an interaction until it reaches a terminal status."""
     for attempt in range(1, max_attempts + 1):
@@ -69,6 +73,9 @@ def poll_interaction(
         status = normalize_status(interaction.status)
 
         print(f"  [{label}] Poll {attempt}/{max_attempts} — status: {status}")
+
+        if on_poll:
+            on_poll(attempt, max_attempts, status)
 
         if is_terminal_status(interaction.status):
             return interaction
@@ -85,6 +92,7 @@ def run_antigravity_agent(
     user_input: str,
     *,
     client: genai.Client | None = None,
+    on_poll: PollCallback | None = None,
 ) -> AgentRunResult:
     """Start the Antigravity agent in background mode and poll until completion."""
     client = client or get_client()
@@ -108,6 +116,7 @@ def run_antigravity_agent(
         client,
         interaction_id,
         label="Antigravity",
+        on_poll=on_poll,
     )
 
     status = normalize_status(completed.status)

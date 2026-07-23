@@ -4,9 +4,22 @@ from __future__ import annotations
 
 from google import genai
 
-from config import load_config
+from config import get_api_key, load_config, set_api_key
 
 _client: genai.Client | None = None
+
+
+def configure_api_key(api_key: str) -> genai.Client:
+    """Configure BYOK vault key and return a fresh client."""
+    global _client
+    set_api_key(api_key)
+    _client = genai.Client(api_key=api_key.strip())
+    return _client
+
+
+def is_client_configured() -> bool:
+    """Return True when an API key is available."""
+    return bool(get_api_key())
 
 
 def get_client() -> genai.Client:

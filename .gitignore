@@ -3,6 +3,7 @@
 __pycache__/
 *.pyc
 output/
+.sovereign_credits.json
 .pytest_cache/
 *.egg-info/
 web/node_modules/

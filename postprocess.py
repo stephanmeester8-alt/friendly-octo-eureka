@@ -7,7 +7,7 @@ import sys
 
 from google import genai
 
-from agents import is_success_status, normalize_status, poll_interaction
+from agents import PollCallback, is_success_status, normalize_status, poll_interaction
 from client import get_client
 from config import (
     POSTPROCESS_SYSTEM_INSTRUCTION,
@@ -31,6 +31,7 @@ def route_and_reformat(
     previous_interaction_id: str,
     *,
     client: genai.Client | None = None,
+    on_poll: PollCallback | None = None,
 ) -> PostProcessPayload:
     """Route to Gemini 3.5 Flash using server-side context via previous_interaction_id."""
     client = client or get_client()
@@ -60,6 +61,7 @@ def route_and_reformat(
             client,
             interaction_id,
             label="Gemini-Router",
+            on_poll=on_poll,
         )
         status = normalize_status(interaction.status)
 

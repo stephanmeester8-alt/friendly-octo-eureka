@@ -1,0 +1,181 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>SovereignAI Terminal</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=DM+Sans:ital,opsz,wght@0,9..40,400;0,9..40,500;0,9..40,600;0,9..40,700;1,9..40,400&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet" />
+  <link rel="stylesheet" href="/static/css/terminal.css" />
+</head>
+<body>
+  <div class="terminal-grid" aria-hidden="true"></div>
+
+  <div class="layout">
+    <header class="topbar">
+      <div class="brand">
+        <div class="brand-icon" aria-hidden="true">⬡</div>
+        <div>
+          <div>SovereignAI <span class="gradient-text">Terminal</span></div>
+          <div class="section-label" style="margin-top:0.25rem">Enterprise Grade · Local</div>
+        </div>
+      </div>
+      <div style="display:flex;align-items:center;gap:0.75rem">
+        <span class="badge badge-live"><span class="pulse-dot"></span> LIVE</span>
+        <span id="header-timer" class="timer hidden">[0m 00s elapsed]</span>
+      </div>
+    </header>
+
+    <div class="status-grid">
+      <div class="glass status-card">
+        <div class="label">Antigravity Agent</div>
+        <div class="value" id="status-agent">—</div>
+        <div class="sub" id="status-agent-sub">Remote · Background</div>
+      </div>
+      <div class="glass status-card">
+        <div class="label">BYOK Key Vault</div>
+        <div class="value" id="status-vault">LOCKED</div>
+        <div class="sub" id="status-vault-sub">Configure API key</div>
+      </div>
+      <div class="glass status-card">
+        <div class="label">Credit Monitor</div>
+        <div class="value" id="status-credits">—</div>
+        <div class="sub">1 credit per approved run</div>
+      </div>
+      <div class="glass status-card">
+        <div class="label">Output Directory</div>
+        <div class="value" style="font-size:0.875rem" id="status-output">./output/</div>
+        <div class="sub">HITL-gated writes only</div>
+      </div>
+    </div>
+
+    <div class="grid-main">
+      <main>
+        <section class="glass-strong glow-ring panel">
+          <p class="section-label">Analysis Terminal</p>
+          <h2>Submit Enterprise Task</h2>
+          <p class="sub">GWW tender analysis, compliance audits, financial TCO reviews — routed through Antigravity → Gemini → HITL gate.</p>
+
+          <textarea id="prompt-input" rows="5" placeholder="Describe your enterprise analysis task…"></textarea>
+
+          <div class="btn-row">
+            <button id="btn-run" class="btn btn-neon" type="button">
+              <span id="run-spinner" class="spinner hidden"></span>
+              Start Analysis — 1 credit
+            </button>
+            <button id="btn-cancel" class="btn btn-secondary hidden" type="button">Cancel</button>
+          </div>
+
+          <div class="pipeline-stages" id="pipeline-stages">
+            <div class="stage-row pending" data-stage="antigravity">
+              <span class="stage-icon" data-icon>○</span>
+              <div>
+                <div class="stage-label">[1/4] Antigravity Agent — Deep Analysis</div>
+                <div class="stage-meta">Background reasoning &amp; research</div>
+              </div>
+              <span class="stage-meta" data-timer></span>
+            </div>
+            <div class="stage-row pending" data-stage="routing">
+              <span class="stage-icon" data-icon>○</span>
+              <div>
+                <div class="stage-label">[2/4] Gemini Router — Cost-Optimized Structuring</div>
+                <div class="stage-meta">JSON schema extraction via previous_interaction_id</div>
+              </div>
+            </div>
+            <div class="stage-row pending" data-stage="hitl">
+              <span class="stage-icon" data-icon>○</span>
+              <div>
+                <div class="stage-label">[3/4] HITL Security Gate</div>
+                <div class="stage-meta">Explicit operator approval required</div>
+              </div>
+            </div>
+            <div class="stage-row pending" data-stage="deliverables">
+              <span class="stage-icon" data-icon>○</span>
+              <div>
+                <div class="stage-label">[4/4] Safe Deliverable View</div>
+                <div class="stage-meta">INDEX.md · numbered artifacts · run_manifest.json</div>
+              </div>
+            </div>
+          </div>
+        </section>
+
+        <section id="deliverables-section" class="glass panel deliverables hidden">
+          <p class="section-label">Safe Deliverables</p>
+          <h2>Approved Output</h2>
+          <p class="sub">All files written to ./output/ after explicit approval.</p>
+          <div id="deliverables-list"></div>
+          <h3 style="margin-top:1.5rem;font-size:0.875rem;font-family:var(--font-mono);color:#71717a;text-transform:uppercase;letter-spacing:0.1em">run_manifest.json</h3>
+          <pre id="manifest-preview" class="code-block"></pre>
+        </section>
+      </main>
+
+      <aside class="sidebar">
+        <section class="glass panel" style="margin-bottom:1rem">
+          <p class="section-label">BYOK Vault</p>
+          <h2>API Key</h2>
+          <p class="sub">Encrypted locally in process memory. Never sent to external servers.</p>
+          <div id="vault-masked" class="vault-key hidden"></div>
+          <input id="vault-input" type="password" placeholder="AQ.••••••••" style="margin-top:0.75rem" />
+          <button id="btn-save-key" class="btn btn-primary" style="width:100%;margin-top:0.75rem" type="button">Save Key to Vault</button>
+        </section>
+
+        <section class="glass panel">
+          <p class="section-label">Credit Monitor</p>
+          <h2>Usage</h2>
+          <p class="sub">Real-time balance. Credits deducted only on approval.</p>
+          <div style="display:flex;justify-content:space-between;align-items:baseline;margin-top:0.5rem">
+            <span style="font-size:2rem;font-weight:600;font-family:var(--font-mono)" id="sidebar-credits">—</span>
+            <span class="badge badge-active" id="credit-badge">ACTIVE</span>
+          </div>
+          <div class="credit-bar"><div id="credit-fill" class="credit-bar-fill" style="width:0%"></div></div>
+          <button id="btn-topup" class="btn btn-secondary" style="width:100%;margin-top:1rem" type="button">+10 Demo Credits</button>
+        </section>
+      </aside>
+    </div>
+  </div>
+
+  <!-- HITL Modal -->
+  <div id="hitl-modal" class="modal-overlay" role="dialog" aria-modal="true" aria-labelledby="hitl-title">
+    <div class="glass-strong modal glow-ring">
+      <div class="modal-header">
+        <h3 id="hitl-title">HITL Security Gate</h3>
+        <span class="badge badge-active">AWAITING APPROVAL</span>
+      </div>
+
+      <div class="warning-box">
+        <span aria-hidden="true">⚠</span>
+        <div>
+          <strong>Human approval required</strong><br />
+          No file will be written to disk without clicking <strong>Approve Write [Y]</strong>.
+        </div>
+      </div>
+
+      <p class="section-label">Summary</p>
+      <div id="hitl-summary" class="summary-box"></div>
+
+      <div style="overflow:hidden;border-radius:0.375rem;border:1px solid #27272a;margin-bottom:1rem">
+        <table>
+          <thead>
+            <tr>
+              <th>Filename</th>
+              <th>Description</th>
+              <th style="text-align:right">Size</th>
+            </tr>
+          </thead>
+          <tbody id="hitl-files"></tbody>
+        </table>
+      </div>
+
+      <div class="btn-row" style="justify-content:flex-end">
+        <button id="btn-deny" class="btn btn-danger" type="button">Deny [N]</button>
+        <button id="btn-approve" class="btn btn-neon" type="button">Approve Write [Y]</button>
+      </div>
+    </div>
+  </div>
+
+  <div id="toast-container" class="toast-container"></div>
+
+  <script src="/static/js/dashboard.js"></script>
+</body>
+</html>

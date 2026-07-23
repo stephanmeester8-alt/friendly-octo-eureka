@@ -54,11 +54,21 @@ POSTPROCESS_USER_PROMPT: str = (
 API_KEY_ENV_VAR: str = "GEMINI_API_KEY"
 
 
+def get_api_key() -> str | None:
+    """Return the API key if configured, without exiting."""
+    load_dotenv()
+    key = os.environ.get(API_KEY_ENV_VAR, "").strip()
+    return key or None
+
+
+def set_api_key(api_key: str) -> None:
+    """Set the API key in the process environment (BYOK vault)."""
+    os.environ[API_KEY_ENV_VAR] = api_key.strip()
+
+
 def load_config() -> str:
     """Load environment variables and return a validated API key."""
-    load_dotenv()
-
-    api_key = os.environ.get(API_KEY_ENV_VAR, "").strip()
+    api_key = get_api_key()
     if not api_key:
         print(
             f"[ERROR] Missing API key. Set the {API_KEY_ENV_VAR} environment variable "

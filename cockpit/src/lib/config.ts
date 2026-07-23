@@ -29,4 +29,12 @@ export function getGatewayWebSocketUrl(): string {
 export const GATEWAY_CONFIG = {
   baseUrl: process.env.AGENT_GATEWAY_URL ?? "http://127.0.0.1:18789",
   timeoutMs: Number(process.env.AGENT_GATEWAY_TIMEOUT_MS ?? 30_000),
+  clientId:
+    process.env.AGENT_GATEWAY_CLIENT_ID?.trim() ||
+    process.env.OPENCLAW_CLIENT_ID?.trim() ||
+    "gateway-client",
+  clientMode:
+    process.env.AGENT_GATEWAY_CLIENT_MODE?.trim() ||
+    process.env.OPENCLAW_CLIENT_MODE?.trim() ||
+    "backend",
 } as const;

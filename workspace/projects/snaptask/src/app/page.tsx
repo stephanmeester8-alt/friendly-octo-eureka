@@ -94,10 +94,10 @@ export default function HomePage() {
 
         <div className="animate-rise-delay-2 mt-9 flex flex-wrap gap-3">
           <Link
-            href="/tasks/new"
+            href="/login"
             className="inline-flex h-12 items-center justify-center rounded-xl bg-[var(--snap)] px-6 text-sm font-bold text-[var(--ink)] transition-transform hover:bg-[var(--snap-hot)] active:scale-[0.98]"
           >
-            Post a task
+            Inloggen met Google
           </Link>
           <Link
             href="/marketplace"

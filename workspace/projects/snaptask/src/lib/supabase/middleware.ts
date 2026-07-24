@@ -1,11 +1,13 @@
 import { createServerClient } from "@supabase/ssr";
 import { NextResponse, type NextRequest } from "next/server";
-import { isSupabaseConfigured } from "@/lib/utils";
+import { isDemoMode, isSupabaseConfigured } from "@/lib/utils";
+
+const PROTECTED_PREFIXES = ["/dashboard", "/tasks/new"];
 
 export async function updateSession(request: NextRequest) {
   let supabaseResponse = NextResponse.next({ request });
 
-  if (!isSupabaseConfigured()) {
+  if (!isSupabaseConfigured() || isDemoMode()) {
     return supabaseResponse;
   }
 
@@ -30,8 +32,28 @@ export async function updateSession(request: NextRequest) {
     },
   );
 
-  // Refresh session — do not remove
-  await supabase.auth.getUser();
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+
+  const path = request.nextUrl.pathname;
+  const isProtected = PROTECTED_PREFIXES.some(
+    (prefix) => path === prefix || path.startsWith(`${prefix}/`),
+  );
+
+  if (isProtected && !user) {
+    const loginUrl = request.nextUrl.clone();
+    loginUrl.pathname = "/login";
+    loginUrl.searchParams.set("next", path);
+    return NextResponse.redirect(loginUrl);
+  }
+
+  if (path === "/login" && user) {
+    const dash = request.nextUrl.clone();
+    dash.pathname = "/dashboard";
+    dash.search = "";
+    return NextResponse.redirect(dash);
+  }
 
   return supabaseResponse;
 }

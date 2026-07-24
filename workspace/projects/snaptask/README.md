@@ -34,15 +34,24 @@ NEXT_PUBLIC_SUPABASE_ANON_KEY=[JOUW_ANON_KEY]
 NEXT_PUBLIC_DEMO_MODE=false
 ```
 
-4. Enable Google / Email auth in the Supabase dashboard (Taak 1.3).
+4. Enable Google provider in Authentication → Providers, and add redirect URL
+   `http://localhost:3000/auth/callback` (Taak 1.3).
 
 Money is stored as **integer cents** (`balance`, `budget`). The UI formats via `formatEurFromCents`.
+
+### Auth routes (Taak 1.3)
+
+| Route | Purpose |
+|-------|---------|
+| `/login` | Google OAuth login |
+| `/auth/callback` | OAuth code → session |
 
 ## App routes
 
 | Route | Purpose |
 |-------|---------|
 | `/` | Landing |
+| `/login` | Google Auth login |
 | `/dashboard` | Wallet balance + active tasks |
 | `/tasks/new` | Create task (drag-and-drop upload, budget) |
 | `/marketplace` | Open tasks feed + claim |

@@ -33,6 +33,23 @@ Bedragen: altijd integers in **centen** (50 = €0,50). UI converteert via `euro
 
 RLS + `handle_new_user` trigger: bij Auth-signup verschijnt automatisch een profiel met `balance = 0`.
 
-## Volgende: Taak 1.3
+## Taak 1.3 — Google Auth login
 
-Google OAuth / Email login UI in Next.js.
+### Supabase dashboard
+1. Authentication → Providers → **Google** inschakelen (Client ID + Secret van Google Cloud Console).
+2. Authentication → URL Configuration:
+   - Site URL: `http://localhost:3000` (prod later: `https://usesnaptask.com`)
+   - Redirect URLs: `http://localhost:3000/auth/callback`
+
+### App routes
+| Route | Rol |
+|-------|-----|
+| `/login` | Google OAuth knop (`AuthForm`) |
+| `/auth/callback` | Wisselt `?code=` om voor session cookies |
+| Header | Toont Inloggen / gebruikersnaam + Uitloggen |
+
+Bij succesvolle login maakt de SQL-trigger uit 1.2 automatisch een `profiles`-rij met lege wallet.
+
+## Volgende: Fase 2
+
+Wallet top-up via Stripe (virtuele credits, bijv. €5,00).

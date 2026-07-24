@@ -2,7 +2,7 @@ import express from "express";
 
 import { resolveApproval, startAgentRun } from "./lib/agent.js";
 import { HOST, PORT, PROJECTS_ROOT, WORKSPACE_ROOT } from "./lib/config.js";
-import { getRecentEvents, publishEvent, subscribe } from "./lib/events.js";
+import { getRecentEvents, getEventsSince, publishEvent, subscribe } from "./lib/events.js";
 import { attachSseKeepalive, encodeDataEvent, encodeInitialBurst } from "./lib/sse.js";
 import {
   listProjects,
@@ -162,9 +162,42 @@ app.post("/approvals/:id", async (req, res) => {
   }
 });
 
+/** JSON poll fallback — works through Cloudflare quick tunnels (SSE may not stream). */
+app.get("/events/poll", (req, res) => {
+  const since = req.query.since;
+  const events = getEventsSince(since);
+  res.json({
+    transport: "poll",
+    serverTime: new Date().toISOString(),
+    events,
+  });
+});
+
+/** JSON snapshot of recent events. */
+app.get("/events/snapshot", (req, res) => {
+  const limit = Math.min(Number(req.query.limit ?? 25), 200);
+  res.json({
+    transport: "snapshot",
+    serverTime: new Date().toISOString(),
+    events: getRecentEvents(limit),
+  });
+});
+
 app.get("/events", (req, res) => {
   try {
-    // One-shot probe for tunnel diagnostics (returns immediately).
+    // JSON probe — use through cloudflared when SSE streaming returns 0 bytes.
+    if (req.query.probe === "json") {
+      res.json({
+        ok: true,
+        transport: "probe-json",
+        serverTime: new Date().toISOString(),
+        events: getRecentEvents(5),
+        hint: "SSE may not stream via quick tunnel; use GET /events/poll as fallback",
+      });
+      return;
+    }
+
+    // One-shot SSE probe for local diagnostics.
     if (req.query.probe === "1") {
       res.setHeader("Content-Type", "text/event-stream; charset=utf-8");
       res.setHeader("Cache-Control", "no-cache, no-transform");

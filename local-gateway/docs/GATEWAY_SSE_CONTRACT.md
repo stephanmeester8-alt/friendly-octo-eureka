@@ -52,6 +52,36 @@ Accept: text/event-stream
 
 **Visibility:** `document.visibilitychange` → visible → forced reconnect.
 
+## Poll fallback (Cloudflare quick tunnels)
+
+Cloudflare **trycloudflare.com** quick tunnels often return **0 bytes** for long-lived `text/event-stream` responses while `/health` works. Use JSON polling instead:
+
+```
+GET {GATEWAY_URL}/events/poll?since=2026-07-24T01:00:00.000Z
+```
+
+Response:
+
+```json
+{
+  "transport": "poll",
+  "serverTime": "2026-07-24T01:30:00.000Z",
+  "events": [ /* AgentEvent[] newer than since */ ]
+}
+```
+
+Recommended client strategy:
+
+1. Try `EventSource(/events)` for local dev or ngrok
+2. On stall / 0 bytes / tunnel host → fall back to `poll` every 2–5s
+3. Keep `/health` poll every 20s for zombie detection
+
+Diagnostic:
+
+```
+GET {GATEWAY_URL}/events?probe=json
+```
+
 ## AgentEvent shape
 
 ```typescript
@@ -124,7 +154,7 @@ First lines must include `event: connect`. Within 12s you should see `: heartbea
 | Symptom | Cause | Fix |
 |---------|-------|-----|
 | Footer `gateway ?` | Old gateway without handshake | `git pull` + restart `npm start` |
-| 0 bytes via tunnel, works locally | Proxy/tunnel SSE buffering | Gateway sends 2 KiB padding frame first (upgrade gateway) |
+| 0 bytes via tunnel, works locally | Cloudflare quick tunnel blocks SSE streaming | Use `GET /events/poll?since=...` fallback; SSE works locally + ngrok |
 | 0 events, OPEN status | SSE URL wrong | Use `/events` not `/projects/.../events` |
 | Stall after 30s idle | No keepalive | Upgrade gateway; check tunnel buffers |
 | Reconnect loop | Tunnel URL changed | Update `GATEWAY_URL` after cloudflared restart |

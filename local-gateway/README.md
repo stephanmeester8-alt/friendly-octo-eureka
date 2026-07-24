@@ -289,6 +289,8 @@ await fetch(`${GATEWAY}/approvals/${requestId}`, {
 | Save file | `PUT {GATEWAY}/projects/{slug}/file` |
 | Run agent | `POST {GATEWAY}/projects/{slug}/run` |
 | Live monitor | `GET {GATEWAY}/events` (EventSource) |
+| **Poll fallback (cloud tunnel)** | `GET {GATEWAY}/events/poll?since=<iso>` |
+| Event snapshot | `GET {GATEWAY}/events/snapshot` |
 | Approve tool | `POST {GATEWAY}/approvals/{id}` |
 
 ### Troubleshooting

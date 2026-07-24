@@ -46,3 +46,14 @@ export function subscribe(listener) {
 export function getRecentEvents(limit = 25) {
   return history.slice(-limit);
 }
+
+export function getEventsSince(sinceIso) {
+  if (!sinceIso) {
+    return [...history];
+  }
+  const since = Date.parse(String(sinceIso));
+  if (Number.isNaN(since)) {
+    return [...history];
+  }
+  return history.filter((event) => Date.parse(event.timestamp) > since);
+}

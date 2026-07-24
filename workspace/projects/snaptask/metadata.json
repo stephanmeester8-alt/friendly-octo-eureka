@@ -1,0 +1,12 @@
+{
+  "id": "snaptask",
+  "name": "SnapTask",
+  "description": "Frictionless hybrid micro-task and on-demand AI/human services marketplace with wallet-based micro-transactions.",
+  "createdAt": "2026-07-24T06:40:00.000Z",
+  "updatedAt": "2026-07-24T06:40:00.000Z",
+  "status": "ACTIVE",
+  "agentConfig": {
+    "primaryModel": "google/gemini-3.1-pro-preview",
+    "allowedTools": ["file_write", "terminal_exec", "browser"]
+  }
+}

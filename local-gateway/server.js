@@ -3,7 +3,7 @@ import express from "express";
 import { resolveApproval, startAgentRun } from "./lib/agent.js";
 import { HOST, PORT, PROJECTS_ROOT, WORKSPACE_ROOT } from "./lib/config.js";
 import { getRecentEvents, publishEvent, subscribe } from "./lib/events.js";
-import { attachSseKeepalive, encodeDataEvent } from "./lib/sse.js";
+import { attachSseKeepalive, encodeDataEvent, encodeInitialBurst } from "./lib/sse.js";
 import {
   listProjects,
   NotFoundError,
@@ -164,6 +164,15 @@ app.post("/approvals/:id", async (req, res) => {
 
 app.get("/events", (req, res) => {
   try {
+    // One-shot probe for tunnel diagnostics (returns immediately).
+    if (req.query.probe === "1") {
+      res.setHeader("Content-Type", "text/event-stream; charset=utf-8");
+      res.setHeader("Cache-Control", "no-cache, no-transform");
+      res.write(encodeInitialBurst());
+      res.end();
+      return;
+    }
+
     res.setHeader("Content-Type", "text/event-stream; charset=utf-8");
     res.setHeader("Cache-Control", "no-cache, no-transform");
     res.setHeader("Connection", "keep-alive");

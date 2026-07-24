@@ -35,7 +35,16 @@ export function encodeDataEvent(event) {
  * Many proxies hold the stream until ~2–4 KiB are written.
  */
 export function encodeProxyPadding() {
-  return `: ${" ".repeat(2048)}\n\n`;
+  return `: ${" ".repeat(4096)}\n\n`;
+}
+
+export function encodeInitialBurst() {
+  return [
+    encodeProxyPadding(),
+    encodeConnectHandshake(),
+    encodeCommentHeartbeat(),
+    encodeNamedHeartbeat(),
+  ].join("");
 }
 
 function flushResponse(res) {
@@ -61,9 +70,10 @@ export function attachSseKeepalive(res, options = {}) {
   };
 
   if (options.proxyPadding !== false) {
-    write(encodeProxyPadding());
+    write(encodeInitialBurst());
+  } else {
+    write(encodeConnectHandshake());
   }
-  write(encodeConnectHandshake());
 
   const timer = setInterval(() => {
     write(encodeCommentHeartbeat());

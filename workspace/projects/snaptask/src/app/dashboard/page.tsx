@@ -53,8 +53,15 @@ async function loadDashboard(): Promise<{
   };
 }
 
-export default async function DashboardPage() {
-  const { profile, tasks } = await loadDashboard();
+export default async function DashboardPage({
+  searchParams,
+}: {
+  searchParams: Promise<{ topup?: string }>;
+}) {
+  const [{ profile, tasks }, params] = await Promise.all([
+    loadDashboard(),
+    searchParams,
+  ]);
 
   return (
     <div className="snap-mesh min-h-[calc(100vh-4rem)]">
@@ -79,7 +86,11 @@ export default async function DashboardPage() {
           </Link>
         </div>
 
-        <DashboardClient initialProfile={profile} initialTasks={tasks} />
+        <DashboardClient
+          initialProfile={profile}
+          initialTasks={tasks}
+          topupStatus={params.topup ?? null}
+        />
       </div>
     </div>
   );

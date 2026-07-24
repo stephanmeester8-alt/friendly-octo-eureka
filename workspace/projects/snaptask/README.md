@@ -61,7 +61,9 @@ Money is stored as **integer cents** (`balance`, `budget`). The UI formats via `
 | Endpoint | Method | Description |
 |----------|--------|-------------|
 | `/api/wallet` | GET | Current profile / balance |
-| `/api/wallet/topup` | POST | Simulate top-up (`amountCents` ≥ 100) |
+| `/api/wallet/topup` | POST | Legacy simulate top-up (`amountCents` ≥ 100) |
+| `/api/checkout` | POST | Stripe Checkout (€5 credit pack) or demo credit |
+| `/api/webhooks/stripe` | POST | Credit wallet on `checkout.session.completed` |
 | `/api/tasks` | GET / POST | List / create tasks |
 | `/api/tasks/[id]/claim` | POST | Claim an open task |
 
@@ -69,9 +71,11 @@ Money is stored as **integer cents** (`balance`, `budget`). The UI formats via `
 
 ```text
 src/
-  app/           # Pages + route handlers
-  components/    # UI (dashboard, tasks, wallet, layout)
-  lib/supabase/  # Browser + server clients, session middleware
+  app/           # Pages + route handlers (incl. Stripe webhook)
+  components/    # UI (auth, dashboard, tasks, wallet, layout)
+  lib/supabase/  # Browser + server + admin (service role) clients
+  lib/stripe.ts
+  lib/wallet.ts  # Credit pack constants (€5 = 500)
   lib/demo-store.ts
   types/database.ts
 supabase/migrations/

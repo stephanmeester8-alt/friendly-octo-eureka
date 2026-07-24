@@ -11,5 +11,10 @@ cockpit/node_modules/
 cockpit/.next/
 cockpit/.env.local
 
+# SnapTask / Node projects under workspace
+workspace/projects/*/node_modules/
+workspace/projects/*/.next/
+workspace/projects/*/.env.local
+
 # Local workspace runtime artifacts (keep demo scaffold)
 workspace/projects/*/logs/

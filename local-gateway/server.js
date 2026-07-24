@@ -3,6 +3,7 @@ import express from "express";
 import { resolveApproval, startAgentRun } from "./lib/agent.js";
 import { HOST, PORT, PROJECTS_ROOT, WORKSPACE_ROOT } from "./lib/config.js";
 import { getRecentEvents, publishEvent, subscribe } from "./lib/events.js";
+import { attachSseKeepalive, encodeDataEvent } from "./lib/sse.js";
 import {
   listProjects,
   NotFoundError,
@@ -165,10 +166,13 @@ app.get("/events", (req, res) => {
   res.setHeader("Content-Type", "text/event-stream");
   res.setHeader("Cache-Control", "no-cache, no-transform");
   res.setHeader("Connection", "keep-alive");
+  res.setHeader("X-Accel-Buffering", "no");
   res.flushHeaders?.();
 
+  const { write, cleanup } = attachSseKeepalive(res);
+
   const send = (event) => {
-    res.write(`data: ${JSON.stringify(event)}\n\n`);
+    write(encodeDataEvent(event));
   };
 
   for (const event of getRecentEvents(25)) {
@@ -176,13 +180,10 @@ app.get("/events", (req, res) => {
   }
 
   const unsubscribe = subscribe(send);
-  const heartbeat = setInterval(() => {
-    res.write(": heartbeat\n\n");
-  }, 15_000);
 
   req.on("close", () => {
-    clearInterval(heartbeat);
     unsubscribe();
+    cleanup();
     res.end();
   });
 });

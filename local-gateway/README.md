@@ -142,19 +142,28 @@ Starts a background dummy agent that emits SSE events and requests HITL approval
 
 ### `GET /events` (SSE)
 
-Server-Sent Events stream of `AgentEvent` JSON frames:
+Server-Sent Events stream. Enterprise contract:
 
-```json
-{
-  "id": "uuid",
-  "timestamp": "2026-07-23T12:00:00.000Z",
-  "agentName": "Local Agent",
-  "type": "THOUGHT",
-  "payload": { "message": "..." }
-}
-```
+1. **Immediate connect handshake** on stream open:
+   ```
+   event: connect
+   data: {"status":"connected","ts":"...","mode":"local-gateway"}
+   ```
+2. **Periodic keepalive** every 10s (comment + named event):
+   ```
+   : heartbeat
 
-Event types: `THOUGHT`, `TOOL_CALL`, `FILE_WRITE`, `APPROVAL_REQUEST`, `EXECUTION_STATUS`, `ERROR`.
+   event: heartbeat
+   data: {"ts":"...","kind":"ping"}
+   ```
+3. **Agent events** as standard data frames:
+   ```
+   data: {"id":"...","type":"THOUGHT",...}
+   ```
+
+Any inbound frame (connect, heartbeat, or data) should reset client stall timers.
+
+Reference client: `reference/useGatewaySse.ts` (adaptive liveness, jitter backoff, visibility reconnect).
 
 ## Example workflow
 

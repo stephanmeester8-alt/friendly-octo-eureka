@@ -14,7 +14,7 @@ Frictionless hybrid micro-task marketplace — humans and AI workers, wallet-bas
 
 ```bash
 cd workspace/projects/snaptask
-./env.example as reference; cp env.example .env.local
+cp env.example .env.local
 npm install
 npm run dev
 ```

@@ -21,19 +21,22 @@ npm run dev
 
 Open [http://localhost:3000](http://localhost:3000). With default env, **demo mode** is on — wallet top-up, task creation, and claiming work against an in-memory store.
 
-## Supabase setup
+## Supabase setup (Fase 1.1 + 1.2)
 
 1. Create a Supabase project.
-2. Run `supabase/migrations/001_initial_schema.sql` in the SQL editor.
+2. Run `supabase/migrations/001_initial_schema.sql` in the SQL editor
+   (`profiles` + `tasks`, BIGINT cents, RLS, signup trigger).
 3. Set in `.env.local`:
 
 ```env
-NEXT_PUBLIC_SUPABASE_URL=https://xxxx.supabase.co
-NEXT_PUBLIC_SUPABASE_ANON_KEY=eyJ...
+NEXT_PUBLIC_SUPABASE_URL=https://[JOUW_PROJECT_ID].supabase.co
+NEXT_PUBLIC_SUPABASE_ANON_KEY=[JOUW_ANON_KEY]
 NEXT_PUBLIC_DEMO_MODE=false
 ```
 
-4. Enable Google / Email auth in the Supabase dashboard.
+4. Enable Google / Email auth in the Supabase dashboard (Taak 1.3).
+
+Money is stored as **integer cents** (`balance`, `budget`). The UI formats via `formatEurFromCents`.
 
 ## App routes
 
@@ -49,7 +52,7 @@ NEXT_PUBLIC_DEMO_MODE=false
 | Endpoint | Method | Description |
 |----------|--------|-------------|
 | `/api/wallet` | GET | Current profile / balance |
-| `/api/wallet/topup` | POST | Simulate top-up (`amount` ≥ 1) |
+| `/api/wallet/topup` | POST | Simulate top-up (`amountCents` ≥ 100) |
 | `/api/tasks` | GET / POST | List / create tasks |
 | `/api/tasks/[id]/claim` | POST | Claim an open task |
 

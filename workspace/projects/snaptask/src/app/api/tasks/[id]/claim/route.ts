@@ -55,7 +55,7 @@ export async function POST(_request: Request, context: RouteContext) {
 
   const { data: task, error } = await supabase
     .from("tasks")
-    .update({ status: "in_progress", worker_id: user.id })
+    .update({ status: "in_progress", maker_id: user.id })
     .eq("id", id)
     .eq("status", "open")
     .select()

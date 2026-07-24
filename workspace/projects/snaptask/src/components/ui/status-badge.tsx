@@ -5,14 +5,14 @@ const statusStyles: Record<TaskStatus, string> = {
   open: "bg-[var(--snap)]/25 text-[var(--ink)]",
   in_progress: "bg-[var(--sky)]/20 text-[var(--ink)]",
   completed: "bg-[var(--ink)]/8 text-[var(--ink-muted)]",
-  disputed: "bg-[var(--coral)]/15 text-[var(--coral)]",
+  cancelled: "bg-[var(--coral)]/15 text-[var(--coral)]",
 };
 
 const labels: Record<TaskStatus, string> = {
   open: "Open",
   in_progress: "In progress",
   completed: "Completed",
-  disputed: "Disputed",
+  cancelled: "Cancelled",
 };
 
 export function StatusBadge({

@@ -6,7 +6,7 @@ import {
   getDemoTasks,
 } from "@/lib/demo-store";
 import { createClient } from "@/lib/supabase/server";
-import { isDemoMode } from "@/lib/utils";
+import { eurosToCents, isDemoMode } from "@/lib/utils";
 import type { Profile, Task } from "@/types/database";
 
 export async function GET(request: Request) {
@@ -41,7 +41,7 @@ export async function GET(request: Request) {
     }
     query = query
       .eq("client_id", user.id)
-      .in("status", ["open", "in_progress", "disputed"]);
+      .in("status", ["open", "in_progress"]);
   }
 
   const { data, error } = await query;
@@ -56,8 +56,15 @@ export async function POST(request: Request) {
   const body = await request.json();
   const title = String(body.title ?? "").trim();
   const description = String(body.description ?? "").trim();
-  const budget = Number(body.budget ?? 0);
   const fileName = body.fileName ? String(body.fileName) : null;
+
+  // Accept either budgetCents (preferred) or budget in euros (legacy UI)
+  let budgetCents: number;
+  if (body.budgetCents != null) {
+    budgetCents = Math.round(Number(body.budgetCents));
+  } else {
+    budgetCents = eurosToCents(Number(body.budget ?? 0));
+  }
 
   if (!title || !description) {
     return NextResponse.json(
@@ -65,13 +72,18 @@ export async function POST(request: Request) {
       { status: 400 },
     );
   }
-  if (Number.isNaN(budget) || budget < 0) {
+  if (Number.isNaN(budgetCents) || budgetCents < 0) {
     return NextResponse.json({ error: "Invalid budget" }, { status: 400 });
   }
 
   if (isDemoMode()) {
     try {
-      const task = demoCreateTask({ title, description, budget, fileName });
+      const task = demoCreateTask({
+        title,
+        description,
+        budget: budgetCents,
+        fileName,
+      });
       return NextResponse.json({ task }, { status: 201 });
     } catch (err) {
       return NextResponse.json(
@@ -102,7 +114,7 @@ export async function POST(request: Request) {
 
   const current = profile as Pick<Profile, "balance">;
 
-  if (budget > Number(current.balance)) {
+  if (budgetCents > Number(current.balance)) {
     return NextResponse.json(
       { error: "Insufficient wallet balance" },
       { status: 400 },
@@ -115,7 +127,7 @@ export async function POST(request: Request) {
       client_id: user.id,
       title,
       description,
-      budget,
+      budget: budgetCents,
       file_url: fileName,
       status: "open",
     })
@@ -128,7 +140,7 @@ export async function POST(request: Request) {
 
   const { error: debitError } = await supabase
     .from("profiles")
-    .update({ balance: Number(current.balance) - budget })
+    .update({ balance: Number(current.balance) - budgetCents })
     .eq("id", user.id);
 
   if (debitError) {

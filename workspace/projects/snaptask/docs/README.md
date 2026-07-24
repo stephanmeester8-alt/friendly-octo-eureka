@@ -1,18 +1,38 @@
-# SnapTask MVP notes
+# SnapTask Phase 1 notes
 
-## Schema
+## Taak 1.1 — Supabase koppelen
 
-- `profiles` — wallet balance (EUR) keyed to `auth.users`
-- `tasks` — marketplace jobs with escrowed `budget`, statuses `open | in_progress | completed | disputed`
+1. Maak een project in [Supabase](https://supabase.com/dashboard).
+2. Kopieer **Project URL** en **anon public** key uit Settings → API.
+3. `cp env.example .env.local` en vul in:
 
-## Demo vs live
+```env
+NEXT_PUBLIC_SUPABASE_URL=https://xxxx.supabase.co
+NEXT_PUBLIC_SUPABASE_ANON_KEY=eyJ...
+NEXT_PUBLIC_DEMO_MODE=false
+```
 
-`isDemoMode()` is true when `NEXT_PUBLIC_DEMO_MODE=true` or Supabase env vars are placeholders. Demo uses `src/lib/demo-store.ts` (process memory). Live paths use Supabase clients in `src/lib/supabase/`.
+4. Herstart `npm run dev`.
 
-## Next increments
+## Taak 1.2 — SQL migratie
 
-- Real file upload to Supabase Storage (`task-files` bucket)
-- Stripe / Mollie wallet top-up
-- Auth UI (Google OAuth + magic link)
-- Escrow release on task completion
-- AI worker adapter claiming eligible tasks
+Voer uit in Supabase SQL Editor:
+
+`supabase/migrations/001_initial_schema.sql`
+
+Dit maakt:
+
+| Tabel | Kernvelden |
+|-------|------------|
+| `profiles` | `username`, `avatar_url`, `balance` (BIGINT cents) |
+| `tasks` | `client_id`, `maker_id`, `budget` (BIGINT cents), `status` enum |
+
+Statussen: `open` · `in_progress` · `completed` · `cancelled`
+
+Bedragen: altijd integers in **centen** (50 = €0,50). UI converteert via `eurosToCents` / `formatEurFromCents`.
+
+RLS + `handle_new_user` trigger: bij Auth-signup verschijnt automatisch een profiel met `balance = 0`.
+
+## Volgende: Taak 1.3
+
+Google OAuth / Email login UI in Next.js.

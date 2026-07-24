@@ -4,18 +4,30 @@ import { useCallback, useRef, useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
 import { Upload, X } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import { formatEur } from "@/lib/utils";
+import {
+  centsToEuros,
+  eurosToCents,
+  formatEurFromCents,
+} from "@/lib/utils";
 
-export function TaskCreateForm({ walletBalance }: { walletBalance: number }) {
+export function TaskCreateForm({
+  walletBalance,
+}: {
+  /** Wallet balance in cents */
+  walletBalance: number;
+}) {
   const router = useRouter();
   const inputRef = useRef<HTMLInputElement>(null);
   const [title, setTitle] = useState("");
   const [description, setDescription] = useState("");
-  const [budget, setBudget] = useState(0.5);
+  const [budgetEur, setBudgetEur] = useState(0.5);
   const [file, setFile] = useState<File | null>(null);
   const [dragging, setDragging] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [pending, startTransition] = useTransition();
+
+  const budgetCents = eurosToCents(budgetEur);
+  const maxEur = Math.max(centsToEuros(walletBalance), 5);
 
   const onFiles = useCallback((files: FileList | null) => {
     if (!files?.length) return;
@@ -30,11 +42,11 @@ export function TaskCreateForm({ walletBalance }: { walletBalance: number }) {
       setError("Title and description are required.");
       return;
     }
-    if (budget < 0) {
+    if (budgetCents < 0) {
       setError("Budget cannot be negative.");
       return;
     }
-    if (budget > walletBalance) {
+    if (budgetCents > walletBalance) {
       setError("Insufficient wallet balance. Top up first.");
       return;
     }
@@ -46,7 +58,7 @@ export function TaskCreateForm({ walletBalance }: { walletBalance: number }) {
         body: JSON.stringify({
           title,
           description,
-          budget,
+          budgetCents,
           fileName: file?.name ?? null,
         }),
       });
@@ -150,7 +162,7 @@ export function TaskCreateForm({ walletBalance }: { walletBalance: number }) {
             Budget
           </label>
           <span className="text-xs text-[var(--ink-muted)]">
-            Available {formatEur(walletBalance)}
+            Available {formatEurFromCents(walletBalance)}
           </span>
         </div>
         <div className="mt-2 flex items-center gap-4">
@@ -158,10 +170,10 @@ export function TaskCreateForm({ walletBalance }: { walletBalance: number }) {
             id="budget"
             type="range"
             min={0}
-            max={Math.max(walletBalance, 5)}
+            max={maxEur}
             step={0.1}
-            value={budget}
-            onChange={(e) => setBudget(Number(e.target.value))}
+            value={budgetEur}
+            onChange={(e) => setBudgetEur(Number(e.target.value))}
             className="h-2 flex-1 cursor-pointer appearance-none rounded-full bg-[var(--ink)]/10 accent-[var(--coral)]"
           />
           <div className="relative w-28">
@@ -172,14 +184,14 @@ export function TaskCreateForm({ walletBalance }: { walletBalance: number }) {
               type="number"
               min={0}
               step={0.1}
-              value={budget}
-              onChange={(e) => setBudget(Number(e.target.value))}
+              value={budgetEur}
+              onChange={(e) => setBudgetEur(Number(e.target.value))}
               className="h-11 w-full rounded-xl border border-[var(--ink)]/15 bg-[var(--paper)] pl-7 pr-2 text-sm outline-none ring-[var(--snap)] focus:ring-2"
             />
           </div>
         </div>
         <p className="mt-2 text-xs text-[var(--ink-muted)]">
-          Free (€0) tasks are fine — great for portfolio builders and AI workers.
+          Free (€0) tasks are fine — stored as 0 cents in the ledger.
         </p>
       </div>
 

@@ -1,14 +1,21 @@
 import { NextResponse } from "next/server";
 import { demoTopUp } from "@/lib/demo-store";
 import { createClient } from "@/lib/supabase/server";
-import { isDemoMode } from "@/lib/utils";
+import { eurosToCents, isDemoMode } from "@/lib/utils";
 import type { Profile } from "@/types/database";
 
 export async function POST(request: Request) {
   const body = await request.json();
-  const amount = Number(body.amount);
 
-  if (Number.isNaN(amount) || amount < 1) {
+  // Prefer amountCents; accept amount in euros for the existing UI
+  let amountCents: number;
+  if (body.amountCents != null) {
+    amountCents = Math.round(Number(body.amountCents));
+  } else {
+    amountCents = eurosToCents(Number(body.amount));
+  }
+
+  if (Number.isNaN(amountCents) || amountCents < 100) {
     return NextResponse.json(
       { error: "Minimum top-up is €1.00" },
       { status: 400 },
@@ -17,7 +24,7 @@ export async function POST(request: Request) {
 
   if (isDemoMode()) {
     try {
-      const profile = demoTopUp(amount);
+      const profile = demoTopUp(amountCents);
       return NextResponse.json({ profile, message: "Demo top-up successful" });
     } catch (err) {
       return NextResponse.json(
@@ -47,7 +54,7 @@ export async function POST(request: Request) {
   }
 
   const current = profile as Pick<Profile, "balance">;
-  const nextBalance = Number((Number(current.balance) + amount).toFixed(2));
+  const nextBalance = Number(current.balance) + amountCents;
 
   const { data: updated, error } = await supabase
     .from("profiles")

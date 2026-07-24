@@ -28,7 +28,8 @@ async function loadDashboard(): Promise<{
     return {
       profile: {
         id: "guest",
-        email: "guest@usesnaptask.com",
+        username: "guest",
+        avatar_url: null,
         balance: 0,
         created_at: new Date().toISOString(),
       },
@@ -42,7 +43,7 @@ async function loadDashboard(): Promise<{
       .from("tasks")
       .select("*")
       .eq("client_id", user.id)
-      .in("status", ["open", "in_progress", "disputed"])
+      .in("status", ["open", "in_progress"])
       .order("created_at", { ascending: false }),
   ]);
 
@@ -67,7 +68,7 @@ export default async function DashboardPage() {
               Wallet & tasks
             </h1>
             <p className="mt-2 text-sm text-[var(--ink-muted)]">
-              Signed in as {profile.email}
+              Signed in as {profile.username ?? "maker"}
             </p>
           </div>
           <Link

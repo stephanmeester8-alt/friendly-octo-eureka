@@ -5,12 +5,28 @@ export function cn(...inputs: ClassValue[]) {
   return twMerge(clsx(inputs));
 }
 
-export function formatEur(amount: number): string {
-  return new Intl.NumberFormat("en-IE", {
+/** Convert euro amount (UI) → integer cents (DB). */
+export function eurosToCents(euros: number): number {
+  return Math.round(euros * 100);
+}
+
+/** Convert integer cents (DB) → euro amount (UI). */
+export function centsToEuros(cents: number): number {
+  return cents / 100;
+}
+
+/** Format cents as EUR currency string. */
+export function formatEurFromCents(cents: number): string {
+  return new Intl.NumberFormat("nl-NL", {
     style: "currency",
     currency: "EUR",
     minimumFractionDigits: 2,
-  }).format(amount);
+  }).format(centsToEuros(cents));
+}
+
+/** @deprecated Prefer formatEurFromCents — kept for gradual migration. */
+export function formatEur(euros: number): string {
+  return formatEurFromCents(eurosToCents(euros));
 }
 
 export function isSupabaseConfigured(): boolean {
@@ -20,7 +36,9 @@ export function isSupabaseConfigured(): boolean {
     url &&
       key &&
       !url.includes("your-project") &&
-      !key.includes("your-anon-key"),
+      !url.includes("[JOUW_PROJECT_ID]") &&
+      !key.includes("your-anon-key") &&
+      !key.includes("[JOUW_ANON_KEY]"),
   );
 }
 

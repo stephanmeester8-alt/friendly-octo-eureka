@@ -4,7 +4,7 @@ import { useTransition } from "react";
 import { useRouter } from "next/navigation";
 import { StatusBadge } from "@/components/ui/status-badge";
 import { Button } from "@/components/ui/button";
-import { formatEur } from "@/lib/utils";
+import { formatEurFromCents } from "@/lib/utils";
 import type { Task } from "@/types/database";
 
 function timeAgo(iso: string): string {
@@ -59,7 +59,7 @@ export function TaskCard({
         </div>
         <div className="flex flex-col items-end gap-2">
           <p className="font-[family-name:var(--font-display)] text-xl font-bold text-[var(--ink)]">
-            {task.budget === 0 ? "Free" : formatEur(task.budget)}
+            {task.budget === 0 ? "Free" : formatEurFromCents(task.budget)}
           </p>
           {showClaim && task.status === "open" && (
             <Button size="sm" variant="secondary" onClick={claim} disabled={pending}>

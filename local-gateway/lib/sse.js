@@ -31,6 +31,22 @@ export function encodeDataEvent(event) {
 }
 
 /**
+ * Large SSE comment to defeat proxy/tunnel buffering (Cloudflare, ngrok).
+ * Many proxies hold the stream until ~2–4 KiB are written.
+ */
+export function encodeProxyPadding() {
+  return `: ${" ".repeat(2048)}\n\n`;
+}
+
+function flushResponse(res) {
+  if (typeof res.flush === "function") {
+    res.flush();
+    return;
+  }
+  res.socket?.uncork?.();
+}
+
+/**
  * Attach enterprise SSE keepalive to an Express response.
  * Sends connect handshake immediately, then periodic comment + named heartbeats.
  */
@@ -41,8 +57,12 @@ export function attachSseKeepalive(res, options = {}) {
   const write = (frame) => {
     if (closed) return;
     res.write(frame);
+    flushResponse(res);
   };
 
+  if (options.proxyPadding !== false) {
+    write(encodeProxyPadding());
+  }
   write(encodeConnectHandshake());
 
   const timer = setInterval(() => {

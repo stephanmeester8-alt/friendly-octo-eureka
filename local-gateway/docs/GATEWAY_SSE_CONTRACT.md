@@ -124,6 +124,7 @@ First lines must include `event: connect`. Within 12s you should see `: heartbea
 | Symptom | Cause | Fix |
 |---------|-------|-----|
 | Footer `gateway ?` | Old gateway without handshake | `git pull` + restart `npm start` |
+| 0 bytes via tunnel, works locally | Proxy/tunnel SSE buffering | Gateway sends 2 KiB padding frame first (upgrade gateway) |
 | 0 events, OPEN status | SSE URL wrong | Use `/events` not `/projects/.../events` |
 | Stall after 30s idle | No keepalive | Upgrade gateway; check tunnel buffers |
 | Reconnect loop | Tunnel URL changed | Update `GATEWAY_URL` after cloudflared restart |

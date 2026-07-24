@@ -163,29 +163,40 @@ app.post("/approvals/:id", async (req, res) => {
 });
 
 app.get("/events", (req, res) => {
-  res.setHeader("Content-Type", "text/event-stream");
-  res.setHeader("Cache-Control", "no-cache, no-transform");
-  res.setHeader("Connection", "keep-alive");
-  res.setHeader("X-Accel-Buffering", "no");
-  res.flushHeaders?.();
+  try {
+    res.setHeader("Content-Type", "text/event-stream; charset=utf-8");
+    res.setHeader("Cache-Control", "no-cache, no-transform");
+    res.setHeader("Connection", "keep-alive");
+    res.setHeader("X-Accel-Buffering", "no");
+    res.setHeader("Content-Encoding", "identity");
+    res.socket?.setNoDelay?.(true);
+    res.flushHeaders?.();
 
-  const { write, cleanup } = attachSseKeepalive(res);
+    const { write, cleanup } = attachSseKeepalive(res);
 
-  const send = (event) => {
-    write(encodeDataEvent(event));
-  };
+    const send = (event) => {
+      write(encodeDataEvent(event));
+    };
 
-  for (const event of getRecentEvents(25)) {
-    send(event);
-  }
+    for (const event of getRecentEvents(25)) {
+      send(event);
+    }
 
-  const unsubscribe = subscribe(send);
+    const unsubscribe = subscribe(send);
 
-  req.on("close", () => {
-    unsubscribe();
-    cleanup();
+    req.on("close", () => {
+      unsubscribe();
+      cleanup();
+      res.end();
+    });
+  } catch (error) {
+    const message = error instanceof Error ? error.message : "SSE stream failed";
+    if (!res.headersSent) {
+      res.status(500).json({ error: message });
+      return;
+    }
     res.end();
-  });
+  }
 });
 
 app.use((_req, res) => {
